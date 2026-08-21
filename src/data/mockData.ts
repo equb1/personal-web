@@ -4,12 +4,12 @@ export const SAMPLE_POSTS: Post[] = [
   {
     id: 'handwritten-promise-all',
     title: '【手撕代码沙箱】手写 Promise.all 核心实现与边界测试',
-    summary: '前端高频手撕面试题：深入 Promise A+ 规范，在线沙箱中编写 Promise.all 并在浏览器中实时运行测试用例！',
+    summary: '前端高频手撕面试题：深入 Promise A+ 规范，支持 JS/TS/Python 多语言切换与本地测试文件一键导出下载！',
     category: '手撕代码',
     type: 'coding',
     date: '2026-08-20',
     readTime: '15 分钟',
-    tags: ['手撕代码', 'JavaScript', 'Promise', '异步编程', '在线沙箱'],
+    tags: ['手撕代码', 'JavaScript', 'TypeScript', 'Promise', '异步编程', '在线沙箱'],
     views: 3120,
     likes: 245,
     coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop',
@@ -25,7 +25,7 @@ export const SAMPLE_POSTS: Post[] = [
       '4. **快速失败机制 (Fast Fail)**：只要有一个 Promise 被 reject，整体立即 reject。',
       '',
       '---',
-      '👉 请在下方的**在线代码沙箱**中完善 `myPromiseAll` 函数，点击 **【运行代码 & 测试】** 查看测试用例通过情况！'
+      '👉 请在下方的**在线代码沙箱**中完善 `myPromiseAll` 函数，支持切换不同语言语法模版，并可将完整测试用例文件一键下载到本地！'
     ].join('\n'),
     codingChallenge: {
       id: 'cc-promise-all',
@@ -35,7 +35,6 @@ export const SAMPLE_POSTS: Post[] = [
       starterCode: [
         'function myPromiseAll(promises) {',
         '  return new Promise((resolve, reject) => {',
-        '    // 你的代码实现：',
         '    if (!promises || typeof promises[Symbol.iterator] !== "function") {',
         '      return reject(new TypeError("promises must be iterable"));',
         '    }',
@@ -48,19 +47,13 @@ export const SAMPLE_POSTS: Post[] = [
         '    const results = [];',
         '    let completedCount = 0;',
         '    ',
-        '    // TODO: 遍历并处理每个 Promise',
-        '    ',
+        '    // 提示：请遍历 promiseArr 并调用 Promise.resolve(p).then(...) 并在完成后 resolve(results)',
+        '    // 注意：未 resolve 的占位代码将会在 1500ms 后触发超时保护并优雅提示。',
         '  });',
         '}',
         '',
-        '// 测试运行：',
-        'const p1 = Promise.resolve(10);',
-        'const p2 = new Promise((res) => setTimeout(() => res("hello"), 100));',
-        'const p3 = 42;',
-        '',
-        'myPromiseAll([p1, p2, p3]).then(res => {',
-        '  console.log("运行输出结果:", res);',
-        '});'
+        '// 快速试运行：',
+        'console.log("沙箱就绪，请编写代码后点击【运行代码 & 测试】");'
       ].join('\n'),
       solutionCode: [
         'function myPromiseAll(promises) {',
@@ -94,6 +87,113 @@ export const SAMPLE_POSTS: Post[] = [
         '  });',
         '}'
       ].join('\n'),
+      languageTemplates: [
+        {
+          language: 'javascript',
+          label: 'JavaScript (ES2024)',
+          extension: 'js',
+          starterCode: [
+            'function myPromiseAll(promises) {',
+            '  return new Promise((resolve, reject) => {',
+            '    if (!promises || typeof promises[Symbol.iterator] !== "function") {',
+            '      return reject(new TypeError("promises must be iterable"));',
+            '    }',
+            '    const promiseArr = Array.from(promises);',
+            '    if (promiseArr.length === 0) return resolve([]);',
+            '    ',
+            '    const results = [];',
+            '    let count = 0;',
+            '    // TODO: 实现 Promise 收集逻辑',
+            '  });',
+            '}'
+          ].join('\n'),
+          solutionCode: [
+            'function myPromiseAll(promises) {',
+            '  return new Promise((resolve, reject) => {',
+            '    if (!promises || typeof promises[Symbol.iterator] !== "function") {',
+            '      return reject(new TypeError("promises must be iterable"));',
+            '    }',
+            '    const promiseArr = Array.from(promises);',
+            '    if (promiseArr.length === 0) return resolve([]);',
+            '    const results = new Array(promiseArr.length);',
+            '    let count = 0;',
+            '    promiseArr.forEach((p, i) => {',
+            '      Promise.resolve(p).then(',
+            '        val => {',
+            '          results[i] = val;',
+            '          count++;',
+            '          if (count === promiseArr.length) resolve(results);',
+            '        },',
+            '        err => reject(err)',
+            '      );',
+            '    });',
+            '  });',
+            '}'
+          ].join('\n')
+        },
+        {
+          language: 'typescript',
+          label: 'TypeScript (v5.7)',
+          extension: 'ts',
+          starterCode: [
+            'function myPromiseAll<T extends readonly unknown[] | []>(',
+            '  promises: T',
+            '): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }> {',
+            '  return new Promise((resolve, reject) => {',
+            '    const promiseArr = Array.from(promises as Iterable<any>);',
+            '    if (promiseArr.length === 0) return resolve([] as any);',
+            '    ',
+            '    const results: any[] = new Array(promiseArr.length);',
+            '    let count = 0;',
+            '    // TODO: TypeScript 泛型并发收集',
+            '  });',
+            '}'
+          ].join('\n'),
+          solutionCode: [
+            'function myPromiseAll<T extends readonly unknown[] | []>(',
+            '  promises: T',
+            '): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }> {',
+            '  return new Promise((resolve, reject) => {',
+            '    const promiseArr = Array.from(promises as Iterable<any>);',
+            '    if (promiseArr.length === 0) return resolve([] as any);',
+            '    const results: any[] = new Array(promiseArr.length);',
+            '    let count = 0;',
+            '    promiseArr.forEach((p, i) => {',
+            '      Promise.resolve(p).then(',
+            '        val => {',
+            '          results[i] = val;',
+            '          count++;',
+            '          if (count === promiseArr.length) resolve(results as any);',
+            '        },',
+            '        err => reject(err)',
+            '      );',
+            '    });',
+            '  });',
+            '}'
+          ].join('\n')
+        },
+        {
+          language: 'python',
+          label: 'Python (asyncio.gather)',
+          extension: 'py',
+          starterCode: [
+            'import asyncio',
+            '',
+            'async def my_gather(*aws):',
+            '    """模拟 asyncio.gather 并发执行协程/任务"""',
+            '    results = [None] * len(aws)',
+            '    # TODO: 使用 asyncio 收集所有任务结果',
+            '    return results'
+          ].join('\n'),
+          solutionCode: [
+            'import asyncio',
+            '',
+            'async def my_gather(*aws):',
+            '    tasks = [asyncio.ensure_future(aw) for aw in aws]',
+            '    return [await task for task in tasks]'
+          ].join('\n')
+        }
+      ],
       hints: [
         '使用 Array.from(promises) 处理所有 Iterable 输入。',
         '用 count 计数器统计成功完成的数量，当 count === length 时 resolve(results)。',
@@ -102,7 +202,7 @@ export const SAMPLE_POSTS: Post[] = [
       testCases: [
         {
           id: 't1',
-          name: '处理普通值与已解决的 Promise',
+          name: '处理普通值与已解决的 Promise 并发',
           code: 'await myPromiseAll([1, Promise.resolve(2), 3])',
           expectedOutput: '[1, 2, 3]'
         },
@@ -117,6 +217,12 @@ export const SAMPLE_POSTS: Post[] = [
           name: '空数组应立即 resolve 空数组',
           code: 'await myPromiseAll([])',
           expectedOutput: '[]'
+        },
+        {
+          id: 't4',
+          name: '遇到任一 reject 时立即触发拒绝',
+          code: 'try { await myPromiseAll([Promise.resolve(1), Promise.reject("Error Occurred")]); } catch(e) { return e; }',
+          expectedOutput: '"Error Occurred"'
         }
       ]
     }

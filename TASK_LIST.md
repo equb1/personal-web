@@ -12,12 +12,12 @@
 - [x] [QA & Validation] 运行 TypeScript 类型检查与 Vite 构建验证
 - [x] [Theme Redesign] 去 AI 紫色化，重构为清新翡翠薄荷青 (Emerald & Teal & Mint) 极光主题
 - [x] [CommandMenu] 全局 Cmd+K 快捷搜索弹窗与键盘流跳转
+- [x] [Learning Upgrade] 多类型文章详情、面试选择题与基础代码沙箱
 
 ---
-## 🚀 Feature: 学习文章详情页深度优化 (多类型支持 + 交互选择题 + 在线代码沙箱)
-- [x] [Types & Mock] 扩展 `src/types/index.ts` 支持 `type: 'article' | 'quiz' | 'coding'`，并扩充手撕代码题与选择题示例数据 (`src/data/mockData.ts`)
-- [x] [Code Sandbox] 开发 `src/components/CodeSandbox.tsx` 交互式代码沙箱容器 (支持代码编辑、Console 实时输出捕获、一键运行 Run、测试用例 Test Cases 验证与官方解法切换)
-- [x] [Quiz Component] 开发 `src/components/QuizCard.tsx` 交互式面试选择题组件 (选项点击交互、正误即时判定、解析折叠展开与答题统计)
-- [x] [Detail View Upgrade] 深度重构 `src/pages/LearningPage.tsx` 文章详情页：类型指示 Badge、题目快速导航索引、沙箱分屏交互体验
-- [x] [UI/UX Review] 参照 `ui-aesthetic-ux-critique` 对沙箱编辑器与答题界面的对比度、状态微动效与排版进行自我审查与优化
+## ⚡ CodeSandbox Critical Fixes & Enhancements (多语言 + 超时熔断防卡死 + 测试套件文件下载)
+- [x] [Timeout Fix] 在 `src/components/CodeSandbox.tsx` 引入 Promise 执行超时熔断机制 (1500ms 超时自动捕获，彻底杜绝默认未完成代码/死循环导致的无限转圈卡死)
+- [x] [Multi-Language] 支持多语言切换选择器 (JavaScript / TypeScript / Python 模板与语法高亮标签)
+- [x] [Test Suite Export] 增加单元测试用例全屏/抽屉预览，并支持「一键导出/下载为本地测试文件 (.test.js / .test.ts / .test.py)」
+- [x] [Types & Mock] 在 `src/types/index.ts` & `src/data/mockData.ts` 补充多语言预设与完整导出文件模版
 - [x] [QA & Validation] 运行 `npm run build` 确保 TypeScript 类型安全与 Vite 构建零报错 (Exit Code 0)

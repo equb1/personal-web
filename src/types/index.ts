@@ -2,6 +2,8 @@ export type NavigationTab = 'home' | 'learning' | 'hobbies' | 'books' | 'other'
 
 export type PostType = 'article' | 'quiz' | 'coding'
 
+export type SupportedLanguage = 'javascript' | 'typescript' | 'python'
+
 export interface QuizOption {
   id: string
   text: string
@@ -24,6 +26,14 @@ export interface TestCase {
   expectedOutput: string
 }
 
+export interface LanguageTemplate {
+  language: SupportedLanguage
+  label: string
+  extension: string
+  starterCode: string
+  solutionCode: string
+}
+
 export interface CodingChallenge {
   id: string
   title: string
@@ -33,6 +43,7 @@ export interface CodingChallenge {
   solutionCode: string
   testCases: TestCase[]
   hints?: string[]
+  languageTemplates?: LanguageTemplate[]
 }
 
 export interface Post {
