@@ -1,0 +1,82 @@
+import React, { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Copy, Check } from 'lucide-react'
+
+interface MarkdownRendererProps {
+  content: string
+}
+
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+  return (
+    <div className="markdown-body">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const language = match ? match[1] : ''
+            const codeString = String(children).replace(/\n$/, '')
+            
+            return match ? (
+              <CodeBlock language={language} code={codeString} />
+            ) : (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            )
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+const CodeBlock: React.FC<{ language: string; code: string }> = ({ language, code }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="relative my-6 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl group">
+      {/* Code Bar Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/90 border-b border-slate-800/80 font-mono text-xs text-slate-400">
+        <div className="flex items-center space-x-2">
+          <div className="flex space-x-1.5">
+            <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+            <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+            <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+          </div>
+          <span className="ml-2 uppercase tracking-wider text-slate-400 font-semibold">{language || 'text'}</span>
+        </div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center space-x-1 px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400">已复制</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              <span>复制</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Code Body */}
+      <pre className="p-4 overflow-x-auto text-sm font-mono text-slate-200 leading-relaxed bg-slate-950/80">
+        <code>{code}</code>
+      </pre>
+    </div>
+  )
+}
