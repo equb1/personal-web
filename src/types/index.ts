@@ -85,8 +85,12 @@ export interface Book {
   status: 'reading' | 'completed' | 'want-to-read'
   progress: number
   summary: string
-  thoughts: string // Markdown format
+  excerpt?: string // Original book excerpt in Markdown
+  thoughts: string // Reading notes in Markdown format
   tags: string[]
+  publishYear?: string
+  pages?: number
+  spineColor?: string // 3D Spine color for realistic visual
 }
 
 export interface Project {
