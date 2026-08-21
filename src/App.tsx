@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavigationTab, Post, HobbyVideo, Book, Comment } from './types'
 import {
   SAMPLE_POSTS,
@@ -13,6 +13,7 @@ import { Navbar } from './components/Navbar'
 import { Footer } from './components/Footer'
 import { VideoModal } from './components/VideoModal'
 import { BookDetailModal } from './components/BookDetailModal'
+import { CommandMenu } from './components/CommandMenu'
 
 import { HomePage } from './pages/HomePage'
 import { LearningPage } from './pages/LearningPage'
@@ -36,13 +37,29 @@ export function App() {
   const [selectedVideo, setSelectedVideo] = useState<HobbyVideo | null>(null)
   const [selectedBook, setSelectedBook] = useState<Book | null>(null)
 
+  // Command Menu Modal State
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
+
+  // Global Cmd+K / Ctrl+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsCommandMenuOpen((prev) => !prev)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const handleTabChange = (tab: NavigationTab) => {
     setActiveTab(tab)
     setSelectedPost(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleSelectPostFromHome = (post: Post) => {
+  const handleSelectPostFromSearchOrHome = (post: Post) => {
     setSelectedPost(post)
     setActiveTab('learning')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -53,16 +70,20 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-teal-500/30 selection:text-teal-200">
       {/* Header Navigation */}
-      <Navbar activeTab={activeTab} setActiveTab={handleTabChange} />
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        onOpenCommandMenu={() => setIsCommandMenuOpen(true)}
+      />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-16">
         {activeTab === 'home' && (
           <HomePage
             onNavigate={handleTabChange}
-            onSelectPost={handleSelectPostFromHome}
+            onSelectPost={handleSelectPostFromSearchOrHome}
             onSelectVideo={setSelectedVideo}
             onSelectBook={setSelectedBook}
             posts={posts}
@@ -106,9 +127,21 @@ export function App() {
       {/* Footer */}
       <Footer />
 
-      {/* Modals */}
+      {/* Modals & Command Menu */}
       <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} />
       <BookDetailModal book={selectedBook} onClose={() => setSelectedBook(null)} />
+      <CommandMenu
+        isOpen={isCommandMenuOpen}
+        onClose={() => setIsCommandMenuOpen(false)}
+        posts={posts}
+        videos={videos}
+        books={books}
+        projects={projects}
+        onSelectPost={handleSelectPostFromSearchOrHome}
+        onSelectVideo={setSelectedVideo}
+        onSelectBook={setSelectedBook}
+        onNavigate={handleTabChange}
+      />
     </div>
   )
 }

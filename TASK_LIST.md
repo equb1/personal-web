@@ -10,11 +10,12 @@
 - [x] [Page - Other] 开发“其他”板块：个人简介、经历 TimeLine 时间轴、技能栈与交互式留言板
 - [x] [UI/UX Review] 参照 `ui-aesthetic-ux-critique` Skill 进行全界面审美与交互体验自我审查
 - [x] [QA & Validation] 运行 TypeScript 类型检查与 Vite 构建验证
+- [x] [Theme Redesign] 去 AI 紫色化，重构为清新翡翠薄荷青 (Emerald & Teal & Mint) 极光主题
 
 ---
-## 🎨 Theme Update: Fresh Emerald & Mint Aurora Palette (去 AI 紫色化重构)
-- [x] [Theme Redesign] 重构 `src/index.css` 主题 Token：替换高饱和 AI 霓虹紫，采用清新自然薄荷青 (Emerald & Teal & Mint) 与深黛质感
-- [x] [Theme Redesign] 更新 `src/components/Navbar.tsx` & `src/components/Footer.tsx` 的高亮色系与 Glass 边框
-- [x] [Theme Redesign] 更新 `src/components/MarkdownRenderer.tsx` & `src/components/VideoModal.tsx` & `BookDetailModal.tsx` 主题
-- [x] [Theme Redesign] 全面更新 HomePage, LearningPage, HobbiesPage, BooksPage, OtherPage 5大页面主题配色
+## 🔍 Feature: 全局 Cmd+K 快捷搜索弹窗 (Command Menu)
+- [x] [CommandK] 创建 `src/components/CommandMenu.tsx` 搜索弹窗组件 (支持分类搜索文章、视频、书籍、项目，包含键盘上下键与 Enter 选择导航)
+- [x] [CommandK] 在 `src/components/Navbar.tsx` 中增加快捷搜索按钮与 `⌘K` 视觉 Badge 触发器
+- [x] [CommandK] 在 `src/App.tsx` 中集成全局 `Cmd+K` / `Ctrl+K` 快捷键监听与模块跨页面协同跳转
+- [x] [UI/UX Review] 对 Cmd+K 弹窗的 Glassmorphism 居中视觉、WCAG 对比度、高亮焦点与微交互进行自我审查
 - [x] [QA & Validation] 运行 `npm run build` 确保没有任何类型/语法报错 (Exit Code 0)
