@@ -13,8 +13,8 @@
 
 ---
 ## 🎨 Theme Update: Fresh Emerald & Mint Aurora Palette (去 AI 紫色化重构)
-- [ ] [Theme Redesign] 重构 `src/index.css` 主题 Token：替换高饱和 AI 霓虹紫，采用清新自然薄荷青 (Emerald & Teal & Mint) 与深黛质感
-- [ ] [Theme Redesign] 更新 `src/components/Navbar.tsx` & `src/components/Footer.tsx` 的高亮色系与 Glass 边框
-- [ ] [Theme Redesign] 更新 `src/components/MarkdownRenderer.tsx` & `src/components/VideoModal.tsx` & `BookDetailModal.tsx` 主题
-- [ ] [Theme Redesign] 全面更新 HomePage, LearningPage, HobbiesPage, BooksPage, OtherPage 5大页面主题配色
-- [ ] [QA & Validation] 运行 `npm run build` 确保没有任何类型/语法报错 (Exit Code 0)
+- [x] [Theme Redesign] 重构 `src/index.css` 主题 Token：替换高饱和 AI 霓虹紫，采用清新自然薄荷青 (Emerald & Teal & Mint) 与深黛质感
+- [x] [Theme Redesign] 更新 `src/components/Navbar.tsx` & `src/components/Footer.tsx` 的高亮色系与 Glass 边框
+- [x] [Theme Redesign] 更新 `src/components/MarkdownRenderer.tsx` & `src/components/VideoModal.tsx` & `BookDetailModal.tsx` 主题
+- [x] [Theme Redesign] 全面更新 HomePage, LearningPage, HobbiesPage, BooksPage, OtherPage 5大页面主题配色
+- [x] [QA & Validation] 运行 `npm run build` 确保没有任何类型/语法报错 (Exit Code 0)
