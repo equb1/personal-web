@@ -1,5 +1,40 @@
 export type NavigationTab = 'home' | 'learning' | 'hobbies' | 'books' | 'other'
 
+export type PostType = 'article' | 'quiz' | 'coding'
+
+export interface QuizOption {
+  id: string
+  text: string
+  isCorrect: boolean
+}
+
+export interface QuizItem {
+  id: string
+  question: string
+  options: QuizOption[]
+  explanation: string // Markdown format
+  difficulty: 'easy' | 'medium' | 'hard'
+  tags?: string[]
+}
+
+export interface TestCase {
+  id: string
+  name: string
+  code: string // Test case execution code snippet
+  expectedOutput: string
+}
+
+export interface CodingChallenge {
+  id: string
+  title: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  description: string // Markdown format
+  starterCode: string
+  solutionCode: string
+  testCases: TestCase[]
+  hints?: string[]
+}
+
 export interface Post {
   id: string
   title: string
@@ -8,7 +43,10 @@ export interface Post {
   date: string
   readTime: string
   tags: string[]
-  content: string
+  content: string // Markdown
+  type?: PostType // 'article' (default) | 'quiz' | 'coding'
+  quizzes?: QuizItem[]
+  codingChallenge?: CodingChallenge
   coverImage?: string
   views: number
   likes: number

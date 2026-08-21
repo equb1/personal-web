@@ -11,11 +11,13 @@
 - [x] [UI/UX Review] 参照 `ui-aesthetic-ux-critique` Skill 进行全界面审美与交互体验自我审查
 - [x] [QA & Validation] 运行 TypeScript 类型检查与 Vite 构建验证
 - [x] [Theme Redesign] 去 AI 紫色化，重构为清新翡翠薄荷青 (Emerald & Teal & Mint) 极光主题
+- [x] [CommandMenu] 全局 Cmd+K 快捷搜索弹窗与键盘流跳转
 
 ---
-## 🔍 Feature: 全局 Cmd+K 快捷搜索弹窗 (Command Menu)
-- [x] [CommandK] 创建 `src/components/CommandMenu.tsx` 搜索弹窗组件 (支持分类搜索文章、视频、书籍、项目，包含键盘上下键与 Enter 选择导航)
-- [x] [CommandK] 在 `src/components/Navbar.tsx` 中增加快捷搜索按钮与 `⌘K` 视觉 Badge 触发器
-- [x] [CommandK] 在 `src/App.tsx` 中集成全局 `Cmd+K` / `Ctrl+K` 快捷键监听与模块跨页面协同跳转
-- [x] [UI/UX Review] 对 Cmd+K 弹窗的 Glassmorphism 居中视觉、WCAG 对比度、高亮焦点与微交互进行自我审查
-- [x] [QA & Validation] 运行 `npm run build` 确保没有任何类型/语法报错 (Exit Code 0)
+## 🚀 Feature: 学习文章详情页深度优化 (多类型支持 + 交互选择题 + 在线代码沙箱)
+- [x] [Types & Mock] 扩展 `src/types/index.ts` 支持 `type: 'article' | 'quiz' | 'coding'`，并扩充手撕代码题与选择题示例数据 (`src/data/mockData.ts`)
+- [x] [Code Sandbox] 开发 `src/components/CodeSandbox.tsx` 交互式代码沙箱容器 (支持代码编辑、Console 实时输出捕获、一键运行 Run、测试用例 Test Cases 验证与官方解法切换)
+- [x] [Quiz Component] 开发 `src/components/QuizCard.tsx` 交互式面试选择题组件 (选项点击交互、正误即时判定、解析折叠展开与答题统计)
+- [x] [Detail View Upgrade] 深度重构 `src/pages/LearningPage.tsx` 文章详情页：类型指示 Badge、题目快速导航索引、沙箱分屏交互体验
+- [x] [UI/UX Review] 参照 `ui-aesthetic-ux-critique` 对沙箱编辑器与答题界面的对比度、状态微动效与排版进行自我审查与优化
+- [x] [QA & Validation] 运行 `npm run build` 确保 TypeScript 类型安全与 Vite 构建零报错 (Exit Code 0)

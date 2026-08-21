@@ -2,10 +2,209 @@ import { Post, HobbyVideo, Book, Project, Comment, TimelineItem } from '../types
 
 export const SAMPLE_POSTS: Post[] = [
   {
+    id: 'handwritten-promise-all',
+    title: '【手撕代码沙箱】手写 Promise.all 核心实现与边界测试',
+    summary: '前端高频手撕面试题：深入 Promise A+ 规范，在线沙箱中编写 Promise.all 并在浏览器中实时运行测试用例！',
+    category: '手撕代码',
+    type: 'coding',
+    date: '2026-08-20',
+    readTime: '15 分钟',
+    tags: ['手撕代码', 'JavaScript', 'Promise', '异步编程', '在线沙箱'],
+    views: 3120,
+    likes: 245,
+    coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop',
+    content: [
+      '# 【手撕代码】手写实现 Promise.all 并通过全部单元测试',
+      '',
+      '`Promise.all(iterable)` 方法接收一个 Promise 的可迭代对象，并在所有的 Promise 都成功解析或任一 Promise 被拒绝时，返回一个单一的 Promise。',
+      '',
+      '## 核心考点与边界情况',
+      '1. **接收可迭代对象**：需要处理普通值和 Promise 混合的情况（使用 `Promise.resolve` 包装）。',
+      '2. **顺序保证**：返回结果数组中的值顺序必须与传入的 Promise 顺序严格一致，而不是完成的先后顺序。',
+      '3. **空数组处理**：如果传入空的可迭代对象，应同步返回一个解析为空数组的已完成 Promise。',
+      '4. **快速失败机制 (Fast Fail)**：只要有一个 Promise 被 reject，整体立即 reject。',
+      '',
+      '---',
+      '👉 请在下方的**在线代码沙箱**中完善 `myPromiseAll` 函数，点击 **【运行代码 & 测试】** 查看测试用例通过情况！'
+    ].join('\n'),
+    codingChallenge: {
+      id: 'cc-promise-all',
+      title: '手写实现 myPromiseAll 函数',
+      difficulty: 'medium',
+      description: '编写一个 `myPromiseAll(promises)` 函数，模拟原生 `Promise.all` 的行为。',
+      starterCode: [
+        'function myPromiseAll(promises) {',
+        '  return new Promise((resolve, reject) => {',
+        '    // 你的代码实现：',
+        '    if (!promises || typeof promises[Symbol.iterator] !== "function") {',
+        '      return reject(new TypeError("promises must be iterable"));',
+        '    }',
+        '    ',
+        '    const promiseArr = Array.from(promises);',
+        '    if (promiseArr.length === 0) {',
+        '      return resolve([]);',
+        '    }',
+        '    ',
+        '    const results = [];',
+        '    let completedCount = 0;',
+        '    ',
+        '    // TODO: 遍历并处理每个 Promise',
+        '    ',
+        '  });',
+        '}',
+        '',
+        '// 测试运行：',
+        'const p1 = Promise.resolve(10);',
+        'const p2 = new Promise((res) => setTimeout(() => res("hello"), 100));',
+        'const p3 = 42;',
+        '',
+        'myPromiseAll([p1, p2, p3]).then(res => {',
+        '  console.log("运行输出结果:", res);',
+        '});'
+      ].join('\n'),
+      solutionCode: [
+        'function myPromiseAll(promises) {',
+        '  return new Promise((resolve, reject) => {',
+        '    if (!promises || typeof promises[Symbol.iterator] !== "function") {',
+        '      return reject(new TypeError("promises must be iterable"));',
+        '    }',
+        '',
+        '    const promiseArr = Array.from(promises);',
+        '    if (promiseArr.length === 0) {',
+        '      return resolve([]);',
+        '    }',
+        '',
+        '    const results = new Array(promiseArr.length);',
+        '    let completedCount = 0;',
+        '',
+        '    promiseArr.forEach((p, index) => {',
+        '      Promise.resolve(p).then(',
+        '        (value) => {',
+        '          results[index] = value;',
+        '          completedCount++;',
+        '          if (completedCount === promiseArr.length) {',
+        '            resolve(results);',
+        '          }',
+        '        },',
+        '        (reason) => {',
+        '          reject(reason);',
+        '        }',
+        '      );',
+        '    });',
+        '  });',
+        '}'
+      ].join('\n'),
+      hints: [
+        '使用 Array.from(promises) 处理所有 Iterable 输入。',
+        '用 count 计数器统计成功完成的数量，当 count === length 时 resolve(results)。',
+        '注意必须使用 Promise.resolve(item) 包装非 Promise 的普通变量。'
+      ],
+      testCases: [
+        {
+          id: 't1',
+          name: '处理普通值与已解决的 Promise',
+          code: 'await myPromiseAll([1, Promise.resolve(2), 3])',
+          expectedOutput: '[1, 2, 3]'
+        },
+        {
+          id: 't2',
+          name: '处理异步定时延时 Promise 并保持原始顺序',
+          code: 'await myPromiseAll([new Promise(r => setTimeout(() => r("A"), 50)), Promise.resolve("B")])',
+          expectedOutput: '["A", "B"]'
+        },
+        {
+          id: 't3',
+          name: '空数组应立即 resolve 空数组',
+          code: 'await myPromiseAll([])',
+          expectedOutput: '[]'
+        }
+      ]
+    }
+  },
+  {
+    id: 'frontend-architecture-quizzes',
+    title: '【精选试题】前端高频核心选择题集与深度解析',
+    summary: '精选 5 道前端中高级核心面试选择题：涵盖 Event Loop 事件循环、闭包作用域、React Fiber 机制与网络缓存。',
+    category: '面试题库',
+    type: 'quiz',
+    date: '2026-08-18',
+    readTime: '10 分钟',
+    tags: ['面试真题', '选择题', 'JavaScript', 'React', '浏览器原理'],
+    views: 4280,
+    likes: 312,
+    coverImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=1200&auto=format&fit=crop',
+    content: [
+      '# 【精选试题】前端高频核心选择题集与深度解析',
+      '',
+      '本套试题聚焦大厂前端面试中的高频概念辨析。每道题目均支持**在线交互作答**，点击选项即可即时获得正误判定与深度 Markdown 考点剖析。',
+      '',
+      '> 💡 **答题提示**：请在不看答案的情况下独立思考选择，答题完成后查看解析强化认知盲区。'
+    ].join('\n'),
+    quizzes: [
+      {
+        id: 'q1',
+        question: '关于 JavaScript 事件循环 (Event Loop)，以下代码的输出顺序正确的是哪一项？\n\n```js\nconsole.log(1);\nsetTimeout(() => console.log(2), 0);\nPromise.resolve().then(() => console.log(3));\nconsole.log(4);\n```',
+        difficulty: 'easy',
+        options: [
+          { id: 'a', text: '1, 4, 2, 3', isCorrect: false },
+          { id: 'b', text: '1, 4, 3, 2', isCorrect: true },
+          { id: 'c', text: '1, 2, 3, 4', isCorrect: false },
+          { id: 'd', text: '1, 3, 4, 2', isCorrect: false }
+        ],
+        explanation: [
+          '### 考点剖析：同步任务 > 微任务 (Microtask) > 宏任务 (Macrotask)',
+          '',
+          '1. `console.log(1)` 与 `console.log(4)` 为同步代码，最先依序输出 `1`、`4`。',
+          '2. `Promise.resolve().then()` 注册的回调进入 **微任务队列**。',
+          '3. `setTimeout` 注册的回调进入 **宏任务队列**。',
+          '4. 同步任务执行完毕后，主线程优先清空当前微任务队列（输出 `3`），随后开启下一轮事件循环取出宏任务（输出 `2`）。',
+          '5. 最终输出序列为：**1, 4, 3, 2**。'
+        ].join('\n')
+      },
+      {
+        id: 'q2',
+        question: '在 React 18 / 19 的 Concurrent 架构中，以下哪一项关于 Fiber 树双缓存机制 (Double Buffering) 的描述是正确的？',
+        difficulty: 'medium',
+        options: [
+          { id: 'a', text: 'Fiber 节点在每次更新时会被完全销毁并从头新建 DOM 树。', isCorrect: false },
+          { id: 'b', text: 'React 同时存在 current 树（已渲染在屏幕上的树）和 workInProgress 树（内存中构建中的树），构建完成后直接替换根指针。', isCorrect: true },
+          { id: 'c', text: '双缓存主要是为了在服务端渲染 (SSR) 时实现多线程并发。', isCorrect: false },
+          { id: 'd', text: 'workInProgress 树在 Diff 算法出错时会自动回滚到浏览器的真实 DOM 快照。', isCorrect: false },
+        ],
+        explanation: [
+          '### 考点剖析：React Fiber 双缓存模型',
+          '',
+          'React 在渲染过程中使用**双缓存机制**来完成 Fiber 树的构建与替换：',
+          '- **current Fiber 树**：对应屏幕上当前呈现的内容。',
+          '- **workInProgress Fiber 树**：在内存中构建并发更新的新树。',
+          '- 当 `workInProgress` 树构建并经过 Commit 阶段后，React 只需简单地将 `fiberRoot.current` 指针切换到 `workInProgress` 树，从而实现毫秒级快速切换并避免渲染闪烁。'
+        ].join('\n')
+      },
+      {
+        id: 'q3',
+        question: 'HTTP 协议中，若响应头为 `Cache-Control: no-cache`，浏览器的缓存策略表现是什么？',
+        difficulty: 'medium',
+        options: [
+          { id: 'a', text: '完全不存储任何缓存副本，每次请求都必须重新从服务器完整下载资源。', isCorrect: false },
+          { id: 'b', text: '允许缓存，但在使用本地缓存前，必须向源服务器发起协商缓存验证 (如 ETag/If-None-Match)。', isCorrect: true },
+          { id: 'c', text: '缓存永不过期，除非用户手动清空浏览器历史记录。', isCorrect: false },
+          { id: 'd', text: '只在 HTTPS 安全连接下允许缓存，HTTP 连接下不缓存。', isCorrect: false }
+        ],
+        explanation: [
+          '### 考点剖析：`no-cache` 与 `no-store` 的关键区别',
+          '',
+          '- **`no-cache`**：表示**协商缓存**。客户端可以缓存资源，但每次使用前必须向服务器发起验证（如果未修改返回 304，否则返回 200）。',
+          '- **`no-store`**：表示**真正意义上的不缓存**，任何响应内容均不得存入本地磁盘或内存。'
+        ].join('\n')
+      }
+    ]
+  },
+  {
     id: 'react-19-deep-dive',
     title: 'React 19 全面解析与 Server Components 最佳实践',
     summary: '深入探究 React 19 核心特性：Actions、useActionState、useOptimistic 以及在生产环境中的性能调优指南。',
     category: '前端工程',
+    type: 'article',
     date: '2026-08-15',
     readTime: '8 分钟',
     tags: ['React 19', 'TypeScript', 'Server Components', '性能优化'],
@@ -37,7 +236,7 @@ export const SAMPLE_POSTS: Post[] = [
       '  return (',
       '    <form action={formAction}>',
       '      <input name="name" defaultValue={name} className="px-4 py-2 rounded bg-slate-900 border border-slate-700" />',
-      '      <button type="submit" disabled={isPending} className="px-4 py-2 bg-indigo-600 rounded text-white hover:bg-indigo-500">',
+      '      <button type="submit" disabled={isPending} className="px-4 py-2 bg-emerald-600 rounded text-white hover:bg-emerald-500">',
       '        {isPending ? "保存中..." : "保存修改"}',
       '      </button>',
       '    </form>',
@@ -73,6 +272,7 @@ export const SAMPLE_POSTS: Post[] = [
     title: 'Tailwind CSS v4 引擎架构重构与设计系统构建',
     summary: '基于 Vite 插件与基于 CSS 的配置机制，探索 Tailwind v4 如何实现 10 倍构建提速与暗黑玻璃拟物风格设计。',
     category: 'CSS & 设计',
+    type: 'article',
     date: '2026-08-02',
     readTime: '6 分钟',
     tags: ['TailwindCSS', 'CSS3', 'Design System', 'Glassmorphism'],
@@ -92,8 +292,8 @@ export const SAMPLE_POSTS: Post[] = [
       '@import "tailwindcss";',
       '',
       '@theme {',
-      '  --color-brand-primary: #6366f1;',
-      '  --color-brand-accent: #a855f7;',
+      '  --color-brand-primary: #14b8a6;',
+      '  --color-brand-accent: #34d399;',
       '  --font-display: "Plus Jakarta Sans", sans-serif;',
       '}',
       '```',
@@ -103,7 +303,7 @@ export const SAMPLE_POSTS: Post[] = [
       '- **Subtle Border**：`border: 1px solid rgba(255, 255, 255, 0.08)`',
       '- **Dynamic Gradient background**：线性渐变混合深色透明蒙版',
       '',
-      '通过以上属性，我们可以轻松打造符合现代 Aesthetic 标准的赛博深色主题界面！'
+      '通过以上属性，我们可以轻松打造符合现代 Aesthetic 标准的清新深色主题界面！'
     ].join('\n')
   },
   {
@@ -111,6 +311,7 @@ export const SAMPLE_POSTS: Post[] = [
     title: '自主 AI Agent 系统架构与多 Agent 协作范式',
     summary: '分析基于 LLM 的 Agent 任务拆解、Memory 记忆树、Tool Use 工具调用及自愈熔断机制。',
     category: '人工智能',
+    type: 'article',
     date: '2026-07-20',
     readTime: '12 分钟',
     tags: ['AI Agent', 'LLM', 'System Design', 'Autonomous Execution'],
@@ -243,7 +444,7 @@ export const SAMPLE_PROJECTS: Project[] = [
   {
     id: 'p1',
     title: 'Zenith Personal Suite',
-    description: '基于 React 19 + TypeScript + Tailwind CSS v4 打造的现代深色极简博客系统。',
+    description: '基于 React 19 + TypeScript + Tailwind CSS v4 打造的现代清新博客系统。',
     tags: ['React', 'TypeScript', 'TailwindCSS', 'Framer Motion'],
     githubUrl: 'https://github.com',
     demoUrl: '#',
@@ -299,7 +500,7 @@ export const INITIAL_COMMENTS: Comment[] = [
     id: 'c1',
     author: 'Alex (前端开发者)',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
-    content: '博客的界面审美太赞了！深色玻璃质感和动效非常流畅，支持 MD 和视频播放的功能也很实用。',
+    content: '博客的界面审美太赞了！深色翡翠薄荷质感和动效非常流畅，支持 MD、代码沙箱和视频播放的功能超赞。',
     date: '2026-08-20 14:22',
     likes: 12
   },
