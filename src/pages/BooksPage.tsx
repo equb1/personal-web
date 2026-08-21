@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Book } from '../types'
-import { BookmarkCheck, Star, BookOpen, CheckCircle2, Clock, Sparkles } from 'lucide-react'
+import { BookmarkCheck, Star, CheckCircle2, Clock } from 'lucide-react'
 
 interface BooksPageProps {
   books: Book[]
@@ -19,8 +19,8 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
       {/* Top Banner */}
       <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 space-y-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-            <BookmarkCheck className="w-5 h-5 text-blue-400" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+            <BookmarkCheck className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-100">书籍、阅读与知识沉淀</h1>
@@ -42,7 +42,7 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
               onClick={() => setFilterStatus(item.id as any)}
               className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${
                 filterStatus === item.id
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                  ? 'bg-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
                   : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -58,7 +58,7 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
           <div
             key={book.id}
             onClick={() => onSelectBook(book)}
-            className="glass-panel rounded-2xl p-6 border border-slate-800 hover:border-blue-500/40 cursor-pointer group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 relative"
+            className="glass-panel rounded-2xl p-6 border border-slate-800 hover:border-emerald-500/40 cursor-pointer group flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 relative"
           >
             <div className="space-y-4">
               {/* Cover & Rating Layout */}
@@ -73,11 +73,11 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-2">
-                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                     {book.category}
                   </span>
 
-                  <h3 className="font-bold text-slate-100 text-base group-hover:text-blue-300 transition-colors line-clamp-2">
+                  <h3 className="font-bold text-slate-100 text-base group-hover:text-emerald-300 transition-colors line-clamp-2">
                     {book.title}
                   </h3>
 
@@ -113,7 +113,7 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
                   )}
                   <span>{book.status === 'completed' ? '已研读完结' : `在读 (${book.progress}%)`}</span>
                 </span>
-                <span className="text-blue-400 group-hover:underline flex items-center space-x-1 font-sans text-xs">
+                <span className="text-emerald-400 group-hover:underline flex items-center space-x-1 font-sans text-xs">
                   <span>查看 Markdown 笔记</span>
                 </span>
               </div>
@@ -121,7 +121,7 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
               {/* Progress Bar */}
               <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full"
                   style={{ width: `${book.progress}%` }}
                 />
               </div>

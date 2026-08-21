@@ -12,7 +12,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({ book, onClose 
   if (!book) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-xl animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-xl animate-fade-in">
       <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-800 bg-slate-900/90">
@@ -23,7 +23,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({ book, onClose 
               className="w-12 h-16 object-cover rounded-md shadow-md border border-slate-700"
             />
             <div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 {book.category}
               </span>
               <h3 className="text-lg font-bold text-slate-100 mt-1">{book.title}</h3>
@@ -73,7 +73,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({ book, onClose 
         <div className="p-6 overflow-y-auto space-y-6">
           <div>
             <h4 className="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-2 flex items-center space-x-1">
-              <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
+              <Bookmark className="w-3.5 h-3.5 text-teal-400" />
               <span>书籍简介</span>
             </h4>
             <p className="text-slate-300 text-sm leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-slate-800/80">

@@ -64,12 +64,12 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-xl animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 backdrop-blur-xl animate-fade-in">
       <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/80">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/15 text-teal-300 border border-teal-500/30 uppercase">
               {video.category}
             </span>
             <h3 className="text-lg font-bold text-slate-100 truncate">{video.title}</h3>
@@ -100,8 +100,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
               onClick={togglePlay}
               className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer"
             >
-              <div className="w-16 h-16 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-lg transform transition-transform hover:scale-110">
-                <Play className="w-8 h-8 fill-white translate-x-0.5" />
+              <div className="w-16 h-16 rounded-full bg-teal-500/90 text-slate-950 flex items-center justify-center shadow-lg transform transition-transform hover:scale-110">
+                <Play className="w-8 h-8 fill-slate-950 translate-x-0.5" />
               </div>
             </div>
           )}
@@ -114,22 +114,22 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
               className="w-full h-1.5 bg-slate-700/80 hover:h-2.5 rounded-full cursor-pointer transition-all mb-3 relative overflow-hidden"
             >
               <div 
-                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
 
             <div className="flex items-center justify-between text-white">
               <div className="flex items-center space-x-3">
-                <button onClick={togglePlay} className="hover:text-indigo-400 transition-colors">
+                <button onClick={togglePlay} className="hover:text-teal-400 transition-colors">
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                 </button>
-                <button onClick={toggleMute} className="hover:text-indigo-400 transition-colors">
+                <button onClick={toggleMute} className="hover:text-teal-400 transition-colors">
                   {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
                 <span className="text-xs font-mono text-slate-300">{video.duration}</span>
               </div>
-              <button onClick={handleFullScreen} className="hover:text-indigo-400 transition-colors">
+              <button onClick={handleFullScreen} className="hover:text-teal-400 transition-colors">
                 <Maximize className="w-5 h-5" />
               </button>
             </div>
@@ -140,14 +140,14 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
         <div className="p-6 bg-slate-900 overflow-y-auto">
           <div className="flex items-center space-x-4 text-xs text-slate-400 mb-3">
             <span className="flex items-center space-x-1">
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5 text-teal-400" />
               <span>{video.date}</span>
             </span>
             <span className="flex items-center space-x-1">
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="w-3.5 h-3.5 text-teal-400" />
               <span>{video.views} 次播放</span>
             </span>
-            <span className="flex items-center space-x-1 text-indigo-400">
+            <span className="flex items-center space-x-1 text-teal-400 font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>4K High Definition</span>
             </span>
