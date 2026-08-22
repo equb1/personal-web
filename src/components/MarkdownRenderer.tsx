@@ -5,11 +5,12 @@ import { Copy, Check } from 'lucide-react'
 
 interface MarkdownRendererProps {
   content: string
+  className?: string
 }
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
   return (
-    <div className="markdown-body">
+    <div className={`markdown-body ${className || ''}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

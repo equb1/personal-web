@@ -12,7 +12,7 @@ import {
 import { Navbar } from './components/Navbar'
 import { Footer } from './components/Footer'
 import { VideoModal } from './components/VideoModal'
-import { OpenBookDeskReader } from './components/OpenBookDeskReader'
+import { Interactive3DBook } from './components/Interactive3DBook'
 import { CommandMenu } from './components/CommandMenu'
 
 import { HomePage } from './pages/HomePage'
@@ -129,7 +129,11 @@ export function App() {
 
       {/* Modals & Readers */}
       <VideoModal video={selectedVideo} onClose={() => setSelectedVideo(null)} />
-      <OpenBookDeskReader book={selectedBook} onClose={() => setSelectedBook(null)} />
+      <Interactive3DBook
+        book={selectedBook}
+        isOpen={Boolean(selectedBook)}
+        onClose={() => setSelectedBook(null)}
+      />
       <CommandMenu
         isOpen={isCommandMenuOpen}
         onClose={() => setIsCommandMenuOpen(false)}

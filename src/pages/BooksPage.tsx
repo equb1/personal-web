@@ -495,10 +495,10 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
             <button
               type="button"
               onClick={() => onSelectBook(currentBook)}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 font-bold text-xs hover:from-emerald-300 hover:to-cyan-400 transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2 flex-shrink-0 cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 font-bold text-xs hover:from-emerald-300 hover:to-cyan-400 transition-all shadow-lg shadow-teal-500/20 flex items-center space-x-2 flex-shrink-0 cursor-pointer group"
             >
-              <BookOpen className="w-4 h-4" />
-              <span>翻开此书 (双栏对照阅读)</span>
+              <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span>从书架取下 · 桌面 3D 卷角翻阅</span>
             </button>
           </div>
         </div>

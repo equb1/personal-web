@@ -75,6 +75,24 @@ export interface HobbyVideo {
   views: number
 }
 
+export type BookFormat = 'markdown' | 'pdf' | 'epub' | 'txt' | 'mixed'
+
+export interface BookPageItem {
+  pageNumber: number
+  title?: string
+  subtitle?: string
+  chapter?: string
+  type: 'cover' | 'copyright' | 'content' | 'illustration' | 'notes' | 'back-cover' | 'pdf-page' | 'code-page' | 'epub-section'
+  content?: string // Markdown / Plain text content
+  format?: 'markdown' | 'pdf' | 'epub' | 'txt' | 'code'
+  image?: string
+  pdfPageNumber?: number
+  pdfUrl?: string
+  codeLanguage?: string
+  codeSnippet?: string
+  quote?: string
+}
+
 export interface Book {
   id: string
   title: string
@@ -91,6 +109,10 @@ export interface Book {
   publishYear?: string
   pages?: number
   spineColor?: string // 3D Spine color for realistic visual
+  formats?: BookFormat[] // Supported electronic formats
+  pdfUrl?: string
+  epubUrl?: string
+  bookPages?: BookPageItem[] // Structured 6-8 pages for realistic 3D curl flipping
 }
 
 export interface Project {

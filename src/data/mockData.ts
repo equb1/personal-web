@@ -524,7 +524,150 @@ export const SAMPLE_BOOKS: Book[] = [
       '- **按钮与点击区**：所有交互元素 hover 时必须有清晰的光标 (`cursor-pointer`) 与背景微过渡，赋予明确的**意符 (Signifier)**。',
       '- **防呆与容错机制**：长耗时操作必须提供即时 Feedback 状态指示（例如刚刚在代码沙箱中加入的超时熔断与取消按钮）。',
       '- **心智模型一致性**：遵循平台通用快捷键（如全局 Cmd+K 搜索、Esc 退出弹窗）。'
-    ].join('\n')
+    ].join('\n'),
+    formats: ['markdown', 'pdf', 'epub', 'txt'],
+    bookPages: [
+      {
+        pageNumber: 1,
+        title: '封面',
+        type: 'cover',
+        image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop'
+      },
+      {
+        pageNumber: 2,
+        title: '扉页与出版信息',
+        chapter: 'Front Matter',
+        type: 'copyright',
+        format: 'markdown',
+        content: [
+          '# 设计心理学',
+          '### The Design of Everyday Things',
+          '',
+          '**著 者**：唐纳德·A·诺曼 (Donald A. Norman)',
+          '**译 者**：黄铭 桑新民',
+          '**出 版**：中信出版集团 · 2015 典藏版',
+          '',
+          '> “如果某样东西需要一张使用说明书才能操作，那么它的设计就已经失败了。”',
+          '',
+          '#### 本书核心索引',
+          '- 01. 日用之物的精神物理学',
+          '- 02. 行为的七个阶段与认知鸿沟',
+          '- 03. 头脑中的知识与外界知识',
+          '- 04. 知道要做什么：约束、示能与意符'
+        ].join('\n')
+      },
+      {
+        pageNumber: 3,
+        title: '第一章：日用之物的精神物理学',
+        chapter: 'Chapter 1 (Markdown 格式)',
+        type: 'content',
+        format: 'markdown',
+        content: [
+          '### 1.1 示能 (Affordances) 与 意符 (Signifiers)',
+          '',
+          '当你面对一扇门，却不知道该推还是拉时，这绝不是你的智力问题，而是**门的设计存在严重缺陷**。',
+          '',
+          '“示能”指的是物理对象与行动者之间的基本交互关系。平坦的金属推板具有“可推”的示能；凸起的把手则具备“可拉”的示能。',
+          '',
+          '如果一扇门装有把手却只能推，使用者就会本能地拉动它并产生挫败感——这就是著名的**诺曼门 (Norman Doors)**。',
+          '',
+          '### 1.2 概念模型与即时反馈',
+          '操作必须提供即时且明确的反馈信号。如果用户点击了按钮，界面两秒内没有任何 Loading 指示，用户就会怀疑操作是否生效并重复点击。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 4,
+        title: '原版图表影印 (PDF 矢量版式)',
+        chapter: 'PDF Facsimile Mode',
+        type: 'pdf-page',
+        format: 'pdf',
+        pdfPageNumber: 28,
+        image: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=800&auto=format&fit=crop',
+        content: [
+          '#### 执行鸿沟与评估鸿沟 (The Gulf of Execution and Evaluation)',
+          '',
+          '- **执行鸿沟**：思考“我该如何让系统做我想做的事？”',
+          '- **评估鸿沟**：思考“系统现在处于什么状态？它是否执行了我的意图？”',
+          '',
+          '*注：本页以 PDF 矢量高保真模式呈现原版出版物比例与排版。*'
+        ].join('\n')
+      },
+      {
+        pageNumber: 5,
+        title: '流动流式排版 (EPUB/TXT 标准格式)',
+        chapter: 'EPUB / TXT Standard Flow',
+        type: 'epub-section',
+        format: 'epub',
+        content: [
+          '### EPUB 响应式流式内容流',
+          '',
+          '在电子书标准 (EPUB3) 中，文字布局随着阅读设备的视口自适应排版。',
+          '',
+          '**认知负荷三定律**：',
+          '1. **最小惊讶原则**：系统的行为应当与用户的直觉预期相吻合。',
+          '2. **反馈的即时性**：物理世界中的触碰有阻尼与触感，数字世界中则依靠平滑动画与声音。',
+          '3. **视觉焦点引导**：通过对比度、空间层级与负空间引导注意力的自然流动。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 6,
+        title: '前端工程代码实践附录',
+        chapter: 'Code Implementation',
+        type: 'code-page',
+        format: 'code',
+        codeLanguage: 'TypeScript',
+        codeSnippet: [
+          '// UI 意符与防抖反馈组件封装',
+          'export function InteractiveAffordanceButton({',
+          '  onClick, children',
+          '}: { onClick: () => Promise<void>; children: React.ReactNode }) {',
+          '  const [isPending, startTransition] = useTransition();',
+          '  return (',
+          '    <button',
+          '      onClick={() => startTransition(onClick)}',
+          '      className="cursor-pointer active:scale-95 transition-transform"',
+          '    >',
+          '      {isPending ? "处理中..." : children}',
+          '    </button>',
+          '  );',
+          '}'
+        ].join('\n'),
+        content: '附录：如何将 Norman 示能原则转化为现代 React 19 组件库的设计规范。'
+      },
+      {
+        pageNumber: 7,
+        title: '工程师深度读书笔记 · 实践沉淀',
+        chapter: 'Engineer Notes',
+        type: 'notes',
+        format: 'markdown',
+        content: [
+          '### Web 现代前端交互落地准则',
+          '',
+          '1. **显式状态意符**：',
+          '   - 所有可点击组件必须配置 `cursor-pointer` 与 `:active` 缩放微动效。',
+          '2. **容错机制与自愈**：',
+          '   - 危险操作（如删除、重置）必须提供 `Undo` 机制而非生硬的弹窗拦截。',
+          '3. **空间一致性**：',
+          '   - 导航与主次操作保持固定的视线流向（Z字形/F字形眼动轨迹）。',
+          '',
+          '*“将认知负荷降至最低，让工具像呼吸一样自然。”*'
+        ].join('\n')
+      },
+      {
+        pageNumber: 8,
+        title: '封底与结语',
+        type: 'back-cover',
+        content: [
+          '### Zenith Reader · 终身阅读计划',
+          '',
+          '**ISBN 978-7-111-54493-2**',
+          '**支持格式**：Markdown / PDF / EPUB / TXT / Code',
+          '**阅读状态**：已研读完结 (100% 进度)',
+          '',
+          '> 每一个伟大的数字体验，都源自对物理世界人类行为的深刻洞察。'
+        ].join('\n')
+      }
+    ]
   },
   {
     id: 'b2',
@@ -559,7 +702,96 @@ export const SAMPLE_BOOKS: Book[] = [
       '## 💡 映射到前端性能调优：',
       '- 遍历高维数组时保证行优先遍历（Row-Major Order），减少 Cache Miss。',
       '- 浏览器端的 ServiceWorker 缓存与 HTTP 协商缓存也是这一层次架构思想的延伸。'
-    ].join('\n')
+    ].join('\n'),
+    bookPages: [
+      {
+        pageNumber: 1,
+        title: '封面',
+        type: 'cover',
+        image: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=600&auto=format&fit=crop'
+      },
+      {
+        pageNumber: 2,
+        title: '扉页与出版信息',
+        chapter: 'Front Matter',
+        type: 'copyright',
+        content: [
+          '# 深入理解计算机系统',
+          '### Computer Systems: A Programmer\'s Perspective (3rd Edition)',
+          '',
+          '**著 者**：Randal E. Bryant / David R. O\'Hallaron',
+          '**译 者**：龚奕利 贺莲',
+          '**出 版**：机械工业出版社 · 经典原版',
+          '',
+          '> “了解硬件和系统软件如何协同工作，是编写快速、正确和可靠程序的关键。”',
+          '',
+          '#### 全书脉络',
+          '- 01. 计算机系统漫游',
+          '- 06. 存储器层次结构与内存山',
+          '- 09. 虚拟内存与动态内存分配',
+          '- 12. 并发编程与硬件线程'
+        ].join('\n')
+      },
+      {
+        pageNumber: 3,
+        title: '第 6 章：存储器层次结构与局部性',
+        chapter: 'Chapter 6',
+        type: 'content',
+        content: [
+          '### 6.1 局部性原理 (Principle of Locality)',
+          '',
+          '编写良好的程序通常倾向于展现出良好的局部性：',
+          '',
+          '1. **时间局部性 (Temporal Locality)**：被引用过一次的内存位置，在不远的将来极有可能被重复访问。',
+          '2. **空间局部性 (Spatial Locality)**：如果一个内存位置被引用，其物理相邻的内存位置很可能在短时间内被访问。',
+          '',
+          '### 6.2 缓存金字塔与访问延迟',
+          '从 CPU 寄存器（0.5ns）、L1 Cache（1ns）、L2/L3 Cache（3-10ns）到 DRAM 主存（50-100ns），延迟呈现数量级阶梯。充分利用 Cache 命中可使程序性能提升数十倍。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 4,
+        title: '内存山与硬件层次图解',
+        chapter: 'System Architecture Diagrams',
+        type: 'illustration',
+        image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop',
+        quote: '“编写 Cache 友好的代码，就是尊重底层硬件的物理规律。”',
+        content: [
+          '#### 内存山 (Memory Mountain) 实测剖析',
+          '通过改变空间步长（Stride）与时间工作集大小，绘制出的三维吞吐率曲面清晰地勾勒出 L1、L2、L3 缓存与主存之间的断崖式带宽衰减。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 5,
+        title: '前端架构师笔记 · 缓存与并发',
+        chapter: 'System Engineering Notes',
+        type: 'notes',
+        content: [
+          '### 计算机底层思想对 Web 架构的启示',
+          '',
+          '1. **局部性与组件设计**：',
+          '   - 将频繁变更的 state 与静态纯展示组件拆分，提升 React Fiber Diff 的命中率。',
+          '2. **分级缓存机制**：',
+          '   - 内存 Cache (Redux/Zustand) -> SessionStorage -> IndexedDB -> ServiceWorker Cache -> HTTP 强缓存。',
+          '3. **空间换时间**：',
+          '   - 预计算 (Pre-computing) 与字典索引取代高频循环遍历。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 6,
+        title: '封底与结语',
+        type: 'back-cover',
+        content: [
+          '### Zenith Reader · CS 底层基石系列',
+          '',
+          '**ISBN 978-7-111-54493-2**',
+          '**分类**：计算机科学 / 体系结构',
+          '**阅读进度**：第 6 章在读 (68%)',
+          '',
+          '> “知其然，更知其所以然。深入底层才能真正打破技术天花板。”'
+        ].join('\n')
+      }
+    ]
   },
   {
     id: 'b3',
@@ -592,7 +824,95 @@ export const SAMPLE_BOOKS: Book[] = [
       '## 核心法则：',
       '- **公开学习 (Learn in Public)**：每一次技术攻坚、踩坑与阅读都记录在个人博客中。',
       '- **番茄工作法**：保持专注与高密度输出，拒绝伪勤奋。'
-    ].join('\n')
+    ].join('\n'),
+    bookPages: [
+      {
+        pageNumber: 1,
+        title: '封面',
+        type: 'cover',
+        image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop'
+      },
+      {
+        pageNumber: 2,
+        title: '扉页与出版信息',
+        chapter: 'Front Matter',
+        type: 'copyright',
+        content: [
+          '# 软技能：代码之外的生存指南',
+          '### Soft Skills: The Software Developer\'s Life Manual',
+          '',
+          '**著 者**：约翰·Z·森梅兹 (John Sonmez)',
+          '**译 者**：王小刚',
+          '**出 版**：人民邮电出版社 · 经典畅销版',
+          '',
+          '> “技术能力决定你的起点，而软技能决定你的天花板。”',
+          '',
+          '#### 全书核心模块',
+          '- 01. 职业规划与个人品牌',
+          '- 02. 高效学习的十步法则',
+          '- 03. 生产力与番茄工作法',
+          '- 04. 财务自由与身心健康'
+        ].join('\n')
+      },
+      {
+        pageNumber: 3,
+        title: '第 18 章：建立个人品牌与公开学习',
+        chapter: 'Chapter 18',
+        type: 'content',
+        content: [
+          '### 18.1 为什么程序员必须建立个人品牌？',
+          '',
+          '大多数程序员花费 100% 的时间在敲代码上，却花费 0% 的时间让别人知道自己的价值。',
+          '',
+          '写技术博客与分享知识并不是为了证明你有多聪明，而是为了：',
+          '1. **将模糊认知固化**：教别人是最高效的学习方式（费曼学习法）。',
+          '2. **建立数字花园**：让你的思考、阅读笔记与代码成果在互联网上 24 小时为你发声。',
+          '3. **结识同频同行**：优质的内容会自然吸引优秀的合作伙伴与职业机会。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 4,
+        title: '生产力体系与数字花园插画',
+        chapter: 'Productivity Systems',
+        type: 'illustration',
+        image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800&auto=format&fit=crop',
+        quote: '“不要等到成为专家再去分享，而是在成为专家的路上公开记录你的每一个脚印。”',
+        content: [
+          '#### 知识内化飞轮',
+          'Input (阅读原著) -> Process (手写实践/测试) -> Output (博文与开源项目) -> Network (行业连接)。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 5,
+        title: '开发者心智成长笔记',
+        chapter: 'Growth Mindset Notes',
+        type: 'notes',
+        content: [
+          '### 工程师的核心生产力法则',
+          '',
+          '1. **公开学习 (Learn in Public)**：',
+          '   - 解决过的每一个棘手 Bug、阅读过的经典书目均沉淀到个人站点。',
+          '2. **刻意练习与反脆弱**：',
+          '   - 走出舒适区，主动尝试未知领域（例如 3D 动效、物理引擎、AI Agent 编排）。',
+          '3. **深度工作保护**：',
+          '   - 每天保留至少 3 小时不被打扰的无干扰心流编码时间。'
+        ].join('\n')
+      },
+      {
+        pageNumber: 6,
+        title: '封底与结语',
+        type: 'back-cover',
+        content: [
+          '### Zenith Reader · 终身成长指南',
+          '',
+          '**ISBN 978-7-115-41234-8**',
+          '**分类**：职场成长 / 个人管理',
+          '**阅读状态**：已研读完结 (100% 进度)',
+          '',
+          '> “优秀的工程师打造产品，卓越的工程师同时打造自己。”'
+        ].join('\n')
+      }
+    ]
   }
 ]
 
