@@ -330,24 +330,6 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
         animate={{ x: coverOpen ? PAGE_W / 2 : 0 }}
         transition={{ duration: 0.85, ease: EASE_SPINE }}
       >
-        {/* Fore-edge thickness (stacked page edges on the right) — visible only
-            while the book is closed, fades out as the cover opens. */}
-        <motion.div
-          className="absolute top-0 bottom-0 pointer-events-none"
-          style={{
-            left: '100%',
-            width: 22,
-            backgroundImage:
-              'repeating-linear-gradient(0deg, #e8e2d5 0px, #e8e2d5 2px, #fdfaf2 2px, #fdfaf2 4px)',
-            boxShadow: 'inset 0 0 8px rgba(0,0,0,0.35)',
-            transform: 'rotateY(-4deg)',
-            transformOrigin: 'left center',
-            borderRadius: '0 4px 4px 0'
-          }}
-          animate={{ opacity: coverOpen ? 0 : 1 }}
-          transition={{ duration: 0.4 }}
-        />
-
         {/* Spine groove (crease on the left hinge line) — fades out when open */}
         <motion.div
           className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-black/35 via-black/5 to-transparent pointer-events-none"
@@ -379,6 +361,7 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-white/5" />
             <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/60 to-transparent" />
+            <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-black/45 via-black/10 to-transparent" />
             <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-950/90 text-teal-300 backdrop-blur-md border border-slate-800">
               {book.category}
             </div>
