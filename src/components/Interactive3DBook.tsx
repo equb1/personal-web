@@ -309,9 +309,10 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
         marginLeft: -SPREAD_W / 2,
         marginTop: -PAGE_H / 2,
         transformStyle: 'preserve-3d',
+        zIndex: 20,
+        pointerEvents: 'none',
         // The CoverRig is only needed for the open/close choreography. During
-        // reading it must be hidden, otherwise its content page bleeds through
-        // the flipbook's transparent half when showing single-page cover/back-cover.
+        // reading it must be hidden, otherwise it overlaps the flipbook.
         visibility: stage === 'reading' ? 'hidden' : 'visible'
       }}
     >
@@ -329,24 +330,10 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
         animate={{ x: coverOpen ? PAGE_W / 2 : 0 }}
         transition={{ duration: 0.85, ease: EASE_SPINE }}
       >
-        {/* 1. Page block top face (revealed first content page, NOT a title page) */}
-        <div className="absolute inset-0 rounded-r-xl overflow-hidden bg-[#faf6ee] flex flex-col justify-between p-6 border border-[#e5dec9] shadow-sm">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-            <span className="font-bold text-slate-800 truncate max-w-[220px]">{book.title}</span>
-            <span>CH. 1</span>
-          </div>
-          <div className="flex-1 my-2 text-[12px] leading-relaxed text-slate-800">
-            <p className="line-clamp-6">{book.excerpt || book.summary}</p>
-          </div>
-          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-            <span>{book.category}</span>
-            <span>{book.author}</span>
-          </div>
-        </div>
-
-        {/* 2. Fore-edge thickness (stacked page edges on the right) */}
-        <div
-          className="absolute top-0 bottom-0"
+        {/* Fore-edge thickness (stacked page edges on the right) — visible only
+            while the book is closed, fades out as the cover opens. */}
+        <motion.div
+          className="absolute top-0 bottom-0 pointer-events-none"
           style={{
             left: '100%',
             width: 22,
@@ -357,10 +344,16 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
             transformOrigin: 'left center',
             borderRadius: '0 4px 4px 0'
           }}
+          animate={{ opacity: coverOpen ? 0 : 1 }}
+          transition={{ duration: 0.4 }}
         />
 
-        {/* 3. Spine groove (crease on the left hinge line) */}
-        <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-black/35 via-black/5 to-transparent" />
+        {/* Spine groove (crease on the left hinge line) — fades out when open */}
+        <motion.div
+          className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-black/35 via-black/5 to-transparent pointer-events-none"
+          animate={{ opacity: coverOpen ? 0 : 1 }}
+          transition={{ duration: 0.4 }}
+        />
 
         {/* 4. Front cover — double-sided board hinged at the left spine */}
         <motion.div
@@ -406,6 +399,9 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
   )
 }
 
+// Persist the last-read page across open/close sessions (module-scoped).
+let lastReadPage = 1
+
 export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   book,
   isOpen,
@@ -420,11 +416,55 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const coverOpen = stage === 'cover_open' || stage === 'reading'
   const isReading = stage === 'reading'
 
+  const flipOpacityValue = stage === 'cover_open' || stage === 'reading' ? 1 : 0
+  const flipOpacityTransition = (() => {
+    switch (stage) {
+      // Appear almost instantly right as the cover crosses 90° (~0.12s), so there's
+      // no visible "content brightening over black" pause.
+      case 'cover_open':
+        return { duration: 0.1, delay: 0.12 }
+      case 'reading':
+        return { duration: 0.2 }
+      case 'cover_close':
+        return { duration: 0.3 }
+      default:
+        return { duration: 0.3 }
+    }
+  })()
+
+  // ---- Diagnostic logs (remove after tuning) ----
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[book] stage:', stage, '| coverOpen:', coverOpen, '| flipOpacity:', flipOpacityValue)
+    }
+  }, [stage, coverOpen, flipOpacityValue])
+
+  useEffect(() => {
+    if (isOpen && book) {
+      const t = setTimeout(() => {
+        try {
+          const fp = flipBookRef.current?.pageFlip()
+          if (fp) {
+            console.log(
+              '[book] flipbook ready: currentPageIndex =',
+              fp.getCurrentPageIndex(),
+              '| startPage prop =',
+              lastReadPage
+            )
+          }
+        } catch {
+          console.log('[book] flipbook not ready yet')
+        }
+      }, 400)
+      return () => clearTimeout(t)
+    }
+  }, [isOpen, book])
+
   // Open lifecycle: fly to desk -> swing cover open -> enter reading
   useEffect(() => {
     if (isOpen && book) {
       setStage('desk_transition')
-      setCurrentPage(0)
+      setCurrentPage(lastReadPage)
       setActiveFormat('all')
 
       const t1 = setTimeout(() => setStage('cover_open'), 950)
@@ -465,15 +505,6 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     if (stage === 'cover_close' || stage === 'returning') return
 
     setStage('cover_close')
-
-    // Reset to page 0 so reopening starts from the cover
-    if (flipBookRef.current?.pageFlip()) {
-      try {
-        flipBookRef.current.pageFlip().turnToPage(0)
-      } catch {
-        // Safe catch
-      }
-    }
 
     setTimeout(() => setStage('returning'), 850)
     setTimeout(() => {
@@ -672,7 +703,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
         <div className="relative w-full max-w-6xl h-[92vh] rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-2xl overflow-visible flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
 
           {/* Top Control Bar with Format Selector */}
-          <div className="relative z-30 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div className="relative z-30 flex flex-wrap items-center justify-between gap-3 pb-3">
             <div className="flex items-center space-x-3">
               <button
                 type="button"
@@ -793,19 +824,18 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 }}
               />
 
-              {/* ===== Realistic closed-book cover rig (flies in & swings open) ===== */}
-              <CoverRig book={book} coverOpen={coverOpen} stage={stage} />
-
-              {/* ===== FlipBook reading canvas (fades in over the opened rig) ===== */}
-              <div
+              {/* ===== FlipBook reading canvas — sits UNDER the cover so the opening cover reveals it directly ===== */}
+              <motion.div
                 className="relative rounded-2xl overflow-visible shadow-2xl flex items-center justify-center"
                 style={{
                   width: `${SPREAD_W}px`,
                   height: `${PAGE_H}px`,
-                  opacity: isReading ? 1 : 0,
-                  pointerEvents: isReading ? 'auto' : 'none',
-                  transition: 'opacity 0.4s ease'
+                  zIndex: 10,
+                  pointerEvents: isReading ? 'auto' : 'none'
                 }}
+                initial={false}
+                animate={{ opacity: flipOpacityValue }}
+                transition={flipOpacityTransition}
               >
                 <HTMLFlipBook
                   ref={flipBookRef}
@@ -820,7 +850,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                   drawShadow={true}
                   flippingTime={600}
                   usePortrait={false}
-                  startPage={1}
+                  startPage={lastReadPage}
                   startZIndex={0}
                   autoSize={true}
                   swipeDistance={20}
@@ -833,6 +863,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                   className="shadow-2xl rounded-2xl"
                   style={{ margin: '0 auto' }}
                   onFlip={(e: any) => {
+                    lastReadPage = e.data
                     setCurrentPage(e.data)
                     playPageFlipSound()
                   }}
@@ -849,7 +880,10 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                     />
                   ))}
                 </HTMLFlipBook>
-              </div>
+              </motion.div>
+
+              {/* ===== Realistic closed-book cover rig — swings OVER the flipbook, revealing it ===== */}
+              <CoverRig book={book} coverOpen={coverOpen} stage={stage} />
             </motion.div>
           </div>
 
