@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef, useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import { Book, BookPageItem, BookFormat } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -30,7 +30,13 @@ interface Interactive3DBookProps {
   onClose: () => void
 }
 
-type AnimationStage = 'shelf' | 'desk_transition' | 'reading' | 'closing'
+type AnimationStage =
+  | 'shelf'
+  | 'desk_transition'
+  | 'cover_open'
+  | 'reading'
+  | 'cover_close'
+  | 'returning'
 
 interface PageBlockProps {
   pageData: BookPageItem
@@ -91,7 +97,7 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
-            
+
             <div className="relative z-10 flex justify-between items-start">
               <div className="flex items-center space-x-2">
                 <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40 backdrop-blur-md">
@@ -168,7 +174,7 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
-              
+
               {/* FORMAT A: PDF FACSIMILE SIMULATION */}
               {pageData.type === 'pdf-page' || pageData.format === 'pdf' ? (
                 <div className="space-y-2.5">
@@ -258,6 +264,148 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
 )
 RealisticPage.displayName = 'RealisticPage'
 
+// ============================================================================
+//  Realistic Closed-Book Cover Rig
+//  A thick hardcover lying flat on the desk. The front cover is a double-sided
+//  board hinged at the LEFT spine; it swings 0° → -180° to open. Meanwhile the
+//  spine migrates from the closed-book's left edge (x=210) to the open-spread
+//  centre (x=420), so the book visibly "opens & recentres" like a real book.
+// ============================================================================
+
+const PAGE_W = 420
+const PAGE_H = 520
+const SPREAD_W = PAGE_W * 2
+
+const EASE_COVER: [number, number, number, number] = [0.34, 1.45, 0.64, 1]
+const EASE_SPINE: [number, number, number, number] = [0.45, 0, 0.2, 1]
+
+interface CoverRigProps {
+  book: Book
+  coverOpen: boolean
+  stage: AnimationStage
+}
+
+const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
+  const shadowControls = useAnimationControls()
+
+  // Dynamic sweeping shadow only peaks while the cover is mid-swing (45°~90°)
+  useEffect(() => {
+    if (stage === 'cover_open' || stage === 'cover_close') {
+      shadowControls.start({
+        opacity: [0, 0.6, 0],
+        transition: { duration: 0.85, times: [0, 0.5, 1], ease: 'easeInOut' }
+      })
+    } else {
+      shadowControls.start({ opacity: 0, transition: { duration: 0.25 } })
+    }
+  }, [stage, shadowControls])
+
+  return (
+    <div
+      className="absolute top-1/2 left-1/2"
+      style={{
+        width: SPREAD_W,
+        height: PAGE_H,
+        marginLeft: -SPREAD_W / 2,
+        marginTop: -PAGE_H / 2,
+        transformStyle: 'preserve-3d',
+        // The CoverRig is only needed for the open/close choreography. During
+        // reading it must be hidden, otherwise its content page bleeds through
+        // the flipbook's transparent half when showing single-page cover/back-cover.
+        visibility: stage === 'reading' ? 'hidden' : 'visible'
+      }}
+    >
+      {/* Spine-anchored group: back cover + page block + fore-edge + spine groove.
+          Animating `x` migrates the spine from the closed book's left edge to the
+          spread centre as the cover opens. */}
+      <motion.div
+        className="absolute top-0"
+        style={{
+          left: PAGE_W / 2,
+          width: PAGE_W,
+          height: PAGE_H,
+          transformStyle: 'preserve-3d'
+        }}
+        animate={{ x: coverOpen ? PAGE_W / 2 : 0 }}
+        transition={{ duration: 0.85, ease: EASE_SPINE }}
+      >
+        {/* 1. Page block top face (revealed first content page, NOT a title page) */}
+        <div className="absolute inset-0 rounded-r-xl overflow-hidden bg-[#faf6ee] flex flex-col justify-between p-6 border border-[#e5dec9] shadow-sm">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span className="font-bold text-slate-800 truncate max-w-[220px]">{book.title}</span>
+            <span>CH. 1</span>
+          </div>
+          <div className="flex-1 my-2 text-[12px] leading-relaxed text-slate-800">
+            <p className="line-clamp-6">{book.excerpt || book.summary}</p>
+          </div>
+          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+            <span>{book.category}</span>
+            <span>{book.author}</span>
+          </div>
+        </div>
+
+        {/* 2. Fore-edge thickness (stacked page edges on the right) */}
+        <div
+          className="absolute top-0 bottom-0"
+          style={{
+            left: '100%',
+            width: 22,
+            backgroundImage:
+              'repeating-linear-gradient(0deg, #e8e2d5 0px, #e8e2d5 2px, #fdfaf2 2px, #fdfaf2 4px)',
+            boxShadow: 'inset 0 0 8px rgba(0,0,0,0.35)',
+            transform: 'rotateY(-4deg)',
+            transformOrigin: 'left center',
+            borderRadius: '0 4px 4px 0'
+          }}
+        />
+
+        {/* 3. Spine groove (crease on the left hinge line) */}
+        <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-black/35 via-black/5 to-transparent" />
+
+        {/* 4. Front cover — double-sided board hinged at the left spine */}
+        <motion.div
+          className="absolute top-0 left-0"
+          style={{
+            width: PAGE_W,
+            height: PAGE_H,
+            transformOrigin: 'left center',
+            transformStyle: 'preserve-3d'
+          }}
+          animate={{ rotateY: coverOpen ? -180 : 0 }}
+          transition={{ duration: 0.85, ease: EASE_COVER }}
+        >
+          {/* FRONT FACE (0°): high-resolution cover art */}
+          <div
+            className="absolute inset-0 rounded-r-xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-900"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <img
+              src={book.coverUrl}
+              alt={book.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-white/5" />
+            <div className="absolute top-0 bottom-0 left-0 w-3 bg-gradient-to-r from-black/60 to-transparent" />
+            <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-950/90 text-teal-300 backdrop-blur-md border border-slate-800">
+              {book.category}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 5. Dynamic shadow sweeping across the exposed page as the cover swings */}
+        <motion.div
+          className="absolute inset-0 rounded-r-xl pointer-events-none"
+          animate={shadowControls}
+          style={{
+            background:
+              'linear-gradient(to right, transparent 20%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.25) 100%)'
+          }}
+        />
+      </motion.div>
+    </div>
+  )
+}
+
 export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   book,
   isOpen,
@@ -269,19 +417,23 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const [activeFormat, setActiveFormat] = useState<'all' | 'markdown' | 'pdf' | 'epub' | 'txt' | 'code'>('all')
   const flipBookRef = useRef<any>(null)
 
-  // Stage 1 -> Stage 2 -> Stage 3 Lifecycle
+  const coverOpen = stage === 'cover_open' || stage === 'reading'
+  const isReading = stage === 'reading'
+
+  // Open lifecycle: fly to desk -> swing cover open -> enter reading
   useEffect(() => {
     if (isOpen && book) {
       setStage('desk_transition')
       setCurrentPage(0)
       setActiveFormat('all')
 
-      // Transition smoothly takes 900ms, then enter interactive reading stage
-      const timer = setTimeout(() => {
-        setStage('reading')
-      }, 950)
+      const t1 = setTimeout(() => setStage('cover_open'), 950)
+      const t2 = setTimeout(() => setStage('reading'), 950 + 850)
 
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(t1)
+        clearTimeout(t2)
+      }
     } else {
       setStage('shelf')
     }
@@ -310,10 +462,11 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
   // Handle Close & Return to Shelf
   const handleCloseAndReturn = () => {
-    if (stage === 'closing') return
-    setStage('closing')
+    if (stage === 'cover_close' || stage === 'returning') return
 
-    // Flip back to page 0 if not already
+    setStage('cover_close')
+
+    // Reset to page 0 so reopening starts from the cover
     if (flipBookRef.current?.pageFlip()) {
       try {
         flipBookRef.current.pageFlip().turnToPage(0)
@@ -322,10 +475,11 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       }
     }
 
+    setTimeout(() => setStage('returning'), 850)
     setTimeout(() => {
       onClose()
       setStage('shelf')
-    }, 850)
+    }, 850 + 800)
   }
 
   const handleNextPage = () => {
@@ -442,6 +596,53 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
   const totalPages = pages.length
 
+  // Outer flying wrapper pose per stage
+  const outerPose = (() => {
+    if (stage === 'desk_transition') {
+      return {
+        rotateX: 4,
+        rotateY: 0,
+        rotateZ: 0,
+        z: 0,
+        scale: 0.95,
+        y: 0,
+        transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }
+      }
+    }
+    if (stage === 'cover_open') {
+      return {
+        rotateX: 2,
+        rotateY: 0,
+        rotateZ: 0,
+        z: 0,
+        scale: 1,
+        y: 0,
+        transition: { duration: 0.3, ease: 'easeOut' as const }
+      }
+    }
+    if (stage === 'reading' || stage === 'cover_close') {
+      return {
+        rotateX: 0,
+        rotateY: 0,
+        rotateZ: 0,
+        z: 0,
+        scale: 1,
+        y: 0,
+        transition: { duration: 0.4, ease: 'easeOut' as const }
+      }
+    }
+    // returning -> back to shelf
+    return {
+      rotateX: 65,
+      rotateY: -35,
+      rotateZ: 10,
+      z: -400,
+      scale: 0.65,
+      y: -120,
+      transition: { duration: 0.8, ease: [0.32, 0, 0.67, 0] as [number, number, number, number] }
+    }
+  })()
+
   return (
     <AnimatePresence>
       <motion.div
@@ -469,7 +670,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
         {/* Floating Modal Frame (overflow-visible to let curling pages rotate beyond bounds) */}
         <div className="relative w-full max-w-6xl h-[92vh] rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-2xl overflow-visible flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
-          
+
           {/* Top Control Bar with Format Selector */}
           <div className="relative z-30 flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
             <div className="flex items-center space-x-3">
@@ -566,7 +767,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             className="relative flex-1 flex items-center justify-center my-2 overflow-visible"
             style={{ perspective: '2200px' }}
           >
-            {/* 3D Spatial Animated Book Container (Clean flat 0deg rotateX during reading to prevent 3D clipping) */}
+            {/* 3D Spatial Animated Book Container */}
             <motion.div
               initial={{
                 rotateX: 65,
@@ -576,47 +777,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 scale: 0.65,
                 y: -120
               }}
-              animate={
-                stage === 'desk_transition'
-                  ? {
-                      rotateX: 4,
-                      rotateY: 0,
-                      rotateZ: 0,
-                      z: 0,
-                      scale: 0.95,
-                      y: 0,
-                      transition: {
-                        duration: 0.9,
-                        ease: [0.16, 1, 0.3, 1]
-                      }
-                    }
-                  : stage === 'reading'
-                  ? {
-                      rotateX: 0, // Flat reading angle guarantees smooth mouse corner tracking without boundary clipping
-                      rotateY: 0,
-                      rotateZ: 0,
-                      z: 0,
-                      scale: 1,
-                      y: 0,
-                      transition: {
-                        duration: 0.4,
-                        ease: 'easeOut'
-                      }
-                    }
-                  : {
-                      // Closing back to shelf
-                      rotateX: 65,
-                      rotateY: -35,
-                      rotateZ: 10,
-                      z: -400,
-                      scale: 0.65,
-                      y: -120,
-                      transition: {
-                        duration: 0.8,
-                        ease: [0.32, 0, 0.67, 0]
-                      }
-                    }
-              }
+              animate={outerPose}
               style={{
                 transformStyle: 'preserve-3d',
                 willChange: 'transform'
@@ -628,22 +789,28 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 className="absolute -bottom-8 inset-x-8 h-16 bg-black/90 rounded-full blur-2xl pointer-events-none transition-all duration-500"
                 style={{
                   transform: 'rotateX(90deg)',
-                  opacity: stage === 'reading' ? 0.85 : 0.4
+                  opacity: isReading ? 0.85 : 0.4
                 }}
               />
 
-              {/* FlipBook Realistic Canvas */}
+              {/* ===== Realistic closed-book cover rig (flies in & swings open) ===== */}
+              <CoverRig book={book} coverOpen={coverOpen} stage={stage} />
+
+              {/* ===== FlipBook reading canvas (fades in over the opened rig) ===== */}
               <div
                 className="relative rounded-2xl overflow-visible shadow-2xl flex items-center justify-center"
                 style={{
-                  width: '840px',
-                  height: '520px'
+                  width: `${SPREAD_W}px`,
+                  height: `${PAGE_H}px`,
+                  opacity: isReading ? 1 : 0,
+                  pointerEvents: isReading ? 'auto' : 'none',
+                  transition: 'opacity 0.4s ease'
                 }}
               >
                 <HTMLFlipBook
                   ref={flipBookRef}
-                  width={420}
-                  height={520}
+                  width={PAGE_W}
+                  height={PAGE_H}
                   size="fixed"
                   minWidth={320}
                   maxWidth={540}
@@ -653,7 +820,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                   drawShadow={true}
                   flippingTime={600}
                   usePortrait={false}
-                  startPage={0}
+                  startPage={1}
                   startZIndex={0}
                   autoSize={true}
                   swipeDistance={20}
@@ -691,7 +858,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             <button
               type="button"
               onClick={handlePrevPage}
-              disabled={currentPage === 0 || stage !== 'reading'}
+              disabled={currentPage === 0 || !isReading}
               className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-teal-500/40 text-slate-200 text-xs font-semibold disabled:opacity-30 transition-all cursor-pointer shadow-md"
             >
               <ChevronLeft className="w-4 h-4 text-teal-400" />
@@ -723,7 +890,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             <button
               type="button"
               onClick={handleNextPage}
-              disabled={currentPage >= totalPages - 1 || stage !== 'reading'}
+              disabled={currentPage >= totalPages - 1 || !isReading}
               className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 text-xs font-bold disabled:opacity-30 transition-all cursor-pointer shadow-lg shadow-teal-500/20"
             >
               <span>下一页 (→)</span>
