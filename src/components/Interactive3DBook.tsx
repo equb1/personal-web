@@ -1,4 +1,4 @@
-import React, { forwardRef, useRef, useState, useEffect } from 'react'
+import React, { forwardRef, useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import { Book, BookPageItem, BookFormat } from '../types'
@@ -279,6 +279,9 @@ const SPREAD_W = PAGE_W * 2
 const EASE_COVER: [number, number, number, number] = [0.34, 1.45, 0.64, 1]
 const EASE_SPINE: [number, number, number, number] = [0.45, 0, 0.2, 1]
 
+// Stable style object so HTMLFlipBook's memo never re-renders on parent renders
+const FLIPBOOK_STYLE: React.CSSProperties = { margin: '0 auto' }
+
 interface CoverRigProps {
   book: Book
   coverOpen: boolean
@@ -287,7 +290,10 @@ interface CoverRigProps {
 
 const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
   return (
-    <div
+    <motion.div
+      initial={false}
+      animate={{ opacity: stage === 'reading' ? 0 : 1 }}
+      transition={{ duration: 0.3 }}
       className="absolute top-1/2 left-1/2"
       style={{
         width: SPREAD_W,
@@ -298,7 +304,8 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
         zIndex: 20,
         pointerEvents: 'none',
         // The CoverRig is only needed for the open/close choreography. During
-        // reading it must be hidden, otherwise it overlaps the flipbook.
+        // reading it must be hidden, otherwise it overlaps the flipbook. Fading
+        // it back in at close avoids a harsh "pop" over the bright pages.
         visibility: stage === 'reading' ? 'hidden' : 'visible'
       }}
     >
@@ -354,7 +361,7 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
           </div>
         </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -459,7 +466,9 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     }
   }
 
-  // Handle Close & Return to Shelf
+  // Handle Close & Return: cover swings shut, then the closed book settles to the
+  // same pose/size as the 360° inspection book so the modal fades seamlessly back
+  // into the inspection stage.
   const handleCloseAndReturn = () => {
     if (stage === 'cover_close' || stage === 'returning') return
 
@@ -469,22 +478,24 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     setTimeout(() => {
       onClose()
       setStage('shelf')
-    }, 1400 + 800)
+    }, 1400 + 900)
   }
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (flipBookRef.current?.pageFlip()) {
       flipBookRef.current.pageFlip().flipNext()
       playPageFlipSound()
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSoundEnabled])
 
-  const handlePrevPage = () => {
+  const handlePrevPage = useCallback(() => {
     if (flipBookRef.current?.pageFlip()) {
       flipBookRef.current.pageFlip().flipPrev()
       playPageFlipSound()
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSoundEnabled])
 
   // Keyboard navigation
   useEffect(() => {
@@ -507,12 +518,12 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, stage])
 
-  if (!isOpen || !book) return null
-
   // Ensure rich 8-page multi-format content.
   // With showCover enabled the front/back covers render as single pages (no
   // endpaper beside them), and the even page count keeps every content spread full.
-  const pages: BookPageItem[] = book.bookPages || [
+  const pages: BookPageItem[] = useMemo(() => {
+    if (!book) return []
+    return book.bookPages || [
     { pageNumber: 1, title: '封面', type: 'cover', image: book.coverUrl },
     {
       pageNumber: 2,
@@ -585,8 +596,39 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       content: `### Zenith Reader 2026\n\nISBN: 978-7-111-54493-2\n状态：${book.status}`
     }
   ]
+  }, [book])
+
+  const handleFlip = useCallback((e: any) => {
+    lastReadPage = e.data
+    setCurrentPage(e.data)
+    playPageFlipSound()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSoundEnabled])
 
   const totalPages = pages.length
+
+  // Memoized flipbook children — HTMLFlipBook is a memo component; keeping its
+  // props stable prevents react-pageflip from re-initializing (and flashing the
+  // current page) whenever the stage re-renders during open/close.
+  const pageNodes = useMemo(
+    () => {
+      if (!book) return []
+      return pages.map((p, idx) => (
+        <RealisticPage
+          key={idx}
+          pageData={p}
+          book={book}
+          totalPages={totalPages}
+          activeFormatView={activeFormat}
+          onTurnNext={handleNextPage}
+          onTurnPrev={handlePrevPage}
+        />
+      ))
+    },
+    [pages, book, totalPages, activeFormat, handleNextPage, handlePrevPage]
+  )
+
+  if (!isOpen || !book) return null
 
   // Outer flying wrapper pose per stage
   const outerPose = (() => {
@@ -623,7 +665,20 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
         transition: { duration: 0.4, ease: 'easeOut' as const }
       }
     }
-    // returning -> back to shelf
+    if (stage === 'returning') {
+      // Settle the closed book to the 360° inspection book's pose & size so the
+      // modal can fade straight into the inspection stage without a jump.
+      return {
+        rotateX: 8,
+        rotateY: -25,
+        rotateZ: 0,
+        z: 0,
+        scale: 0.58,
+        y: 0,
+        transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }
+      }
+    }
+    // shelf -> the closed-book resting pose before the desk flight starts
     return {
       rotateX: 65,
       rotateY: -35,
@@ -640,8 +695,8 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.4 }}
+        exit={{ opacity: 0, scale: 0.97 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
         className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl select-none overflow-hidden"
         style={{ perspective: '2400px' }}
       >
@@ -822,24 +877,10 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                   showPageCorners={true}
                   disableFlipByClick={false}
                   className="rounded-2xl"
-                  style={{ margin: '0 auto' }}
-                  onFlip={(e: any) => {
-                    lastReadPage = e.data
-                    setCurrentPage(e.data)
-                    playPageFlipSound()
-                  }}
+                  style={FLIPBOOK_STYLE}
+                  onFlip={handleFlip}
                 >
-                  {pages.map((p, idx) => (
-                    <RealisticPage
-                      key={idx}
-                      pageData={p}
-                      book={book}
-                      totalPages={totalPages}
-                      activeFormatView={activeFormat}
-                      onTurnNext={handleNextPage}
-                      onTurnPrev={handlePrevPage}
-                    />
-                  ))}
+                  {pageNodes}
                 </HTMLFlipBook>
               </motion.div>
 
