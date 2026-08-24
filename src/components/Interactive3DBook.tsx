@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef, useState, useEffect } from 'react'
-import { motion, AnimatePresence, useAnimationControls } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import { Book, BookPageItem, BookFormat } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
@@ -286,20 +286,6 @@ interface CoverRigProps {
 }
 
 const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
-  const shadowControls = useAnimationControls()
-
-  // Dynamic sweeping shadow only peaks while the cover is mid-swing (45°~90°)
-  useEffect(() => {
-    if (stage === 'cover_open' || stage === 'cover_close') {
-      shadowControls.start({
-        opacity: [0, 0.6, 0],
-        transition: { duration: 0.85, times: [0, 0.5, 1], ease: 'easeInOut' }
-      })
-    } else {
-      shadowControls.start({ opacity: 0, transition: { duration: 0.25 } })
-    }
-  }, [stage, shadowControls])
-
   return (
     <div
       className="absolute top-1/2 left-1/2"
@@ -328,7 +314,7 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
           transformStyle: 'preserve-3d'
         }}
         animate={{ x: coverOpen ? PAGE_W / 2 : 0 }}
-        transition={{ duration: 0.85, ease: EASE_SPINE }}
+        transition={{ duration: 1.4, ease: EASE_SPINE }}
       >
         {/* Spine groove (crease on the left hinge line) — fades out when open */}
         <motion.div
@@ -347,7 +333,7 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
             transformStyle: 'preserve-3d'
           }}
           animate={{ rotateY: coverOpen ? -180 : 0 }}
-          transition={{ duration: 0.85, ease: EASE_COVER }}
+          transition={{ duration: 1.4, ease: EASE_COVER }}
         >
           {/* FRONT FACE (0°): high-resolution cover art */}
           <div
@@ -367,16 +353,6 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
             </div>
           </div>
         </motion.div>
-
-        {/* 5. Dynamic shadow sweeping across the exposed page as the cover swings */}
-        <motion.div
-          className="absolute inset-0 rounded-r-xl pointer-events-none"
-          animate={shadowControls}
-          style={{
-            background:
-              'linear-gradient(to right, transparent 20%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.25) 100%)'
-          }}
-        />
       </motion.div>
     </div>
   )
@@ -405,7 +381,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       // Appear almost instantly right as the cover crosses 90° (~0.12s), so there's
       // no visible "content brightening over black" pause.
       case 'cover_open':
-        return { duration: 0.1, delay: 0.12 }
+        return { duration: 0.15, delay: 0.2 }
       case 'reading':
         return { duration: 0.2 }
       case 'cover_close':
@@ -450,8 +426,8 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       setCurrentPage(lastReadPage)
       setActiveFormat('all')
 
-      const t1 = setTimeout(() => setStage('cover_open'), 950)
-      const t2 = setTimeout(() => setStage('reading'), 950 + 850)
+      const t1 = setTimeout(() => setStage('cover_open'), 1500)
+      const t2 = setTimeout(() => setStage('reading'), 1500 + 1400)
 
       return () => {
         clearTimeout(t1)
@@ -489,11 +465,11 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
     setStage('cover_close')
 
-    setTimeout(() => setStage('returning'), 850)
+    setTimeout(() => setStage('returning'), 1400)
     setTimeout(() => {
       onClose()
       setStage('shelf')
-    }, 850 + 800)
+    }, 1400 + 800)
   }
 
   const handleNextPage = () => {
@@ -533,7 +509,9 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
   if (!isOpen || !book) return null
 
-  // Ensure rich 8-page multi-format content
+  // Ensure rich 8-page multi-format content.
+  // With showCover enabled the front/back covers render as single pages (no
+  // endpaper beside them), and the even page count keeps every content spread full.
   const pages: BookPageItem[] = book.bookPages || [
     { pageNumber: 1, title: '封面', type: 'cover', image: book.coverUrl },
     {
@@ -620,7 +598,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
         z: 0,
         scale: 0.95,
         y: 0,
-        transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }
+        transition: { duration: 1.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }
       }
     }
     if (stage === 'cover_open') {
@@ -809,7 +787,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
               {/* ===== FlipBook reading canvas — sits UNDER the cover so the opening cover reveals it directly ===== */}
               <motion.div
-                className="relative rounded-2xl overflow-visible shadow-2xl flex items-center justify-center"
+                className="relative rounded-2xl overflow-visible flex items-center justify-center"
                 style={{
                   width: `${SPREAD_W}px`,
                   height: `${PAGE_H}px`,
@@ -843,7 +821,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                   clickEventForward={true}
                   showPageCorners={true}
                   disableFlipByClick={false}
-                  className="shadow-2xl rounded-2xl"
+                  className="rounded-2xl"
                   style={{ margin: '0 auto' }}
                   onFlip={(e: any) => {
                     lastReadPage = e.data
