@@ -4,6 +4,7 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { CodeSandbox } from '../components/CodeSandbox'
 import { QuizCard } from '../components/QuizCard'
 import { Search, Calendar, Eye, ThumbsUp, ArrowLeft, BookOpen, Clock, Code2, HelpCircle, FileText, CheckCircle2 } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface LearningPageProps {
   posts: Post[]
@@ -232,7 +233,7 @@ export const LearningPage: React.FC<LearningPageProps> = ({
               {post.coverImage && (
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={post.coverImage}
+                    src={toAbsolute(post.coverImage)}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Book } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { toAbsolute } from '../utils/url'
 import {
   X,
   Star,
@@ -37,7 +38,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({ book, onClose 
         <div className="flex flex-wrap items-center justify-between p-5 sm:p-6 border-b border-slate-800 bg-slate-900/90 gap-4">
           <div className="flex items-center space-x-4">
             <img
-              src={book.coverUrl}
+              src={toAbsolute(book.coverUrl)}
               alt={book.title}
               className="w-12 h-16 object-cover rounded-lg shadow-md border border-slate-700 flex-shrink-0"
             />

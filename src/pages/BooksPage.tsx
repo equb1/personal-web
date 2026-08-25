@@ -10,6 +10,7 @@ import {
   BookOpen
 } from 'lucide-react'
 import { BookShelf3D } from '../components/BookShelf3D'
+import { toAbsolute } from '../utils/url'
 
 interface BooksPageProps {
   books: Book[]
@@ -186,7 +187,7 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
                 <div className="flex items-start space-x-5">
                   <div className="relative group-hover:rotate-1 transition-transform duration-300">
                     <img
-                      src={book.coverUrl}
+                      src={toAbsolute(book.coverUrl)}
                       alt={book.title}
                       draggable={false}
                       className="w-24 h-36 object-cover rounded-xl shadow-xl border border-slate-700/80 flex-shrink-0 select-none pointer-events-none"

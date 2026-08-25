@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { HobbyVideo } from '../types'
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Eye, Calendar, Sparkles } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface VideoModalProps {
   video: HobbyVideo | null
@@ -86,8 +87,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({ video, onClose }) => {
         <div className="relative aspect-video bg-black group overflow-hidden flex items-center justify-center">
           <video
             ref={videoRef}
-            src={video.videoUrl}
-            poster={video.posterUrl}
+            src={toAbsolute(video.videoUrl)}
+            poster={toAbsolute(video.posterUrl)}
             onTimeUpdate={handleTimeUpdate}
             onClick={togglePlay}
             onEnded={() => setIsPlaying(false)}

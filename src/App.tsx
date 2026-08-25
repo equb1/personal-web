@@ -27,7 +27,7 @@ export function App() {
   // Data States
   const [posts] = useState<Post[]>(SAMPLE_POSTS)
   const [videos] = useState<HobbyVideo[]>(SAMPLE_VIDEOS)
-  const [books] = useState<Book[]>(SAMPLE_BOOKS)
+  const [books, setBooks] = useState<Book[]>([])
   const [projects] = useState(SAMPLE_PROJECTS)
   const [timeline] = useState(SAMPLE_TIMELINE)
   const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS)
@@ -69,6 +69,27 @@ export function App() {
     setComments([newComment, ...comments])
   }
 
+  // Fetch books list from API (replaces mock data)
+  useEffect(() => {
+    fetch('/api/books')
+      .then((r) => r.json())
+      .then((envelope) => setBooks(envelope.data ?? []))
+      .catch((err) => {
+        console.error('加载书籍列表失败，回退到 mock 数据', err)
+        setBooks(SAMPLE_BOOKS)
+      })
+  }, [])
+
+  const handleSelectBook = async (book: Book) => {
+    try {
+      const res = await fetch(`/api/books/${book.id}`)
+      const envelope = await res.json()
+      setSelectedBook(envelope.data ?? book)
+    } catch {
+      setSelectedBook(book)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-teal-500/30 selection:text-teal-200">
       {/* Header Navigation */}
@@ -85,7 +106,7 @@ export function App() {
             onNavigate={handleTabChange}
             onSelectPost={handleSelectPostFromSearchOrHome}
             onSelectVideo={setSelectedVideo}
-            onSelectBook={setSelectedBook}
+            onSelectBook={handleSelectBook}
             posts={posts}
             videos={videos}
             books={books}
@@ -110,7 +131,7 @@ export function App() {
         {activeTab === 'books' && (
           <BooksPage
             books={books}
-            onSelectBook={setSelectedBook}
+            onSelectBook={handleSelectBook}
           />
         )}
 
@@ -143,7 +164,7 @@ export function App() {
         projects={projects}
         onSelectPost={handleSelectPostFromSearchOrHome}
         onSelectVideo={setSelectedVideo}
-        onSelectBook={setSelectedBook}
+        onSelectBook={handleSelectBook}
         onNavigate={handleTabChange}
       />
     </div>

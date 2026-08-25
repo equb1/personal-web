@@ -2,10 +2,26 @@ import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Copy, Check } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface MarkdownRendererProps {
   content: string
   className?: string
+}
+
+/**
+ * CommonMark treats 4+ leading spaces as an indented CODE BLOCK. Auto-generated
+ * TOC/list content often carries 4-space indentation (e.g. "    - 3.2.1　…"),
+ * which silently renders the first lines as <pre> instead of a nested list.
+ * Normalize: uniformly drop 2 leading spaces from any line that is an INDENTED
+ * LIST ITEM (4+ spaces before a list marker). Relative nesting is preserved and
+ * genuine code blocks (lines not starting with a list marker) are untouched.
+ */
+function normalizeListIndent(md: string): string {
+  return md
+    .split('\n')
+    .map((line) => (/^ {4,}([-*+]|\d+\.)\s/.test(line) ? line.replace(/^ {2}/, '') : line))
+    .join('\n')
 }
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
@@ -13,6 +29,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     <div className={`markdown-body ${className || ''}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        urlTransform={(src) => toAbsolute(src)}
         components={{
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '')
@@ -29,7 +46,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           }
         }}
       >
-        {content}
+        {normalizeListIndent(content)}
       </ReactMarkdown>
     </div>
   )

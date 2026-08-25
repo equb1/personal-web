@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
 import { Book, BookPageItem, BookFormat } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { toAbsolute } from '../utils/url'
 import {
   X,
   ChevronLeft,
@@ -43,6 +44,7 @@ interface PageBlockProps {
   book: Book
   totalPages: number
   activeFormatView: 'all' | 'markdown' | 'pdf' | 'epub' | 'txt' | 'code'
+  isActive?: boolean
   onTurnNext?: () => void
   onTurnPrev?: () => void
 }
@@ -51,8 +53,8 @@ interface PageBlockProps {
  * High-definition individual Page component with forwardRef
  * Must have forwardRef for react-pageflip DOM measurements & GPU transforms
  */
-export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
-  ({ pageData, book, totalPages, activeFormatView, onTurnNext, onTurnPrev }, ref) => {
+const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
+  ({ pageData, book, totalPages, activeFormatView, isActive = true, onTurnNext, onTurnPrev }, ref) => {
     const isOdd = pageData.pageNumber % 2 !== 0
     const isCover = pageData.type === 'cover'
     const isBackCover = pageData.type === 'back-cover'
@@ -63,6 +65,27 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
       : isOdd
       ? 'bg-[#faf6ee]'
       : 'bg-[#f7f2e6]'
+
+    // Lazy render: pages outside the current spread + neighbours only draw a
+    // lightweight placeholder (sized identically) — avoids parsing every page's
+    // Markdown synchronously, which was freezing the open/flip animations.
+    if (!isActive) {
+      return (
+        <div
+          ref={ref}
+          className={`relative w-full h-full select-none overflow-hidden flex flex-col justify-between ${paperBackground}`}
+          style={{
+            boxShadow: isOdd
+              ? 'inset -1px 0 3px rgba(0,0,0,0.05)'
+              : 'inset 1px 0 3px rgba(0,0,0,0.05)'
+          }}
+        >
+          <div className="flex-1 flex items-center justify-center text-[11px] font-mono text-slate-500 opacity-70">
+            {isCover || isBackCover ? book.title : `第 ${pageData.pageNumber} 页`}
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div
@@ -91,7 +114,7 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
           <div className="relative w-full h-full flex flex-col justify-between p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-100">
             {pageData.image && (
               <img
-                src={pageData.image}
+                src={toAbsolute(pageData.image)}
                 alt={book.title}
                 className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity pointer-events-none"
               />
@@ -172,8 +195,10 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
               <span>P. {pageData.pageNumber}</span>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
+            {/* Body — min-h-0 is REQUIRED so overflow-y-auto can actually scroll
+                (flex items default to min-height:auto, which would grow past the
+                page and get clipped instead of scrolling). */}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
 
               {/* FORMAT A: PDF FACSIMILE SIMULATION */}
               {pageData.type === 'pdf-page' || pageData.format === 'pdf' ? (
@@ -189,7 +214,7 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
                   {pageData.image && (
                     <div className="relative rounded-lg overflow-hidden border border-[#d8ceb8] shadow-sm">
                       <img
-                        src={pageData.image}
+                        src={toAbsolute(pageData.image)}
                         alt={pageData.title || ''}
                         className="w-full h-36 object-cover"
                       />
@@ -224,7 +249,7 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
                   {pageData.image && (
                     <div className="relative rounded-lg overflow-hidden border border-[#d8ceb8] shadow-sm">
                       <img
-                        src={pageData.image}
+                        src={toAbsolute(pageData.image)}
                         alt={pageData.title || ''}
                         className="w-full h-36 sm:h-40 object-cover"
                       />
@@ -262,7 +287,9 @@ export const RealisticPage = forwardRef<HTMLDivElement, PageBlockProps>(
     )
   }
 )
-RealisticPage.displayName = 'RealisticPage'
+RealisticPageInner.displayName = 'RealisticPageInner'
+
+export const RealisticPage = React.memo(RealisticPageInner)
 
 // ============================================================================
 //  Realistic Closed-Book Cover Rig
@@ -272,9 +299,9 @@ RealisticPage.displayName = 'RealisticPage'
 //  centre (x=420), so the book visibly "opens & recentres" like a real book.
 // ============================================================================
 
-const PAGE_W = 420
-const PAGE_H = 520
-const SPREAD_W = PAGE_W * 2
+const BASE_PAGE_W = 420
+const BASE_PAGE_H = 520
+const PAGE_RATIO = BASE_PAGE_W / BASE_PAGE_H
 
 const EASE_COVER: [number, number, number, number] = [0.34, 1.45, 0.64, 1]
 const EASE_SPINE: [number, number, number, number] = [0.45, 0, 0.2, 1]
@@ -286,9 +313,12 @@ interface CoverRigProps {
   book: Book
   coverOpen: boolean
   stage: AnimationStage
+  pageW: number
+  pageH: number
+  spreadW: number
 }
 
-const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
+const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage, pageW, pageH, spreadW }) => {
   return (
     <motion.div
       initial={false}
@@ -296,10 +326,10 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
       transition={{ duration: 0.3 }}
       className="absolute top-1/2 left-1/2"
       style={{
-        width: SPREAD_W,
-        height: PAGE_H,
-        marginLeft: -SPREAD_W / 2,
-        marginTop: -PAGE_H / 2,
+        width: spreadW,
+        height: pageH,
+        marginLeft: -spreadW / 2,
+        marginTop: -pageH / 2,
         transformStyle: 'preserve-3d',
         zIndex: 20,
         pointerEvents: 'none',
@@ -315,12 +345,12 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
       <motion.div
         className="absolute top-0"
         style={{
-          left: PAGE_W / 2,
-          width: PAGE_W,
-          height: PAGE_H,
+          left: pageW / 2,
+          width: pageW,
+          height: pageH,
           transformStyle: 'preserve-3d'
         }}
-        animate={{ x: coverOpen ? PAGE_W / 2 : 0 }}
+        animate={{ x: coverOpen ? pageW / 2 : 0 }}
         transition={{ duration: 1.4, ease: EASE_SPINE }}
       >
         {/* Spine groove (crease on the left hinge line) — fades out when open */}
@@ -334,8 +364,8 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
         <motion.div
           className="absolute top-0 left-0"
           style={{
-            width: PAGE_W,
-            height: PAGE_H,
+            width: pageW,
+            height: pageH,
             transformOrigin: 'left center',
             transformStyle: 'preserve-3d'
           }}
@@ -348,7 +378,7 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage }) => {
             style={{ backfaceVisibility: 'hidden' }}
           >
             <img
-              src={book.coverUrl}
+              src={toAbsolute(book.coverUrl)}
               alt={book.title}
               className="w-full h-full object-cover"
             />
@@ -377,7 +407,40 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const [currentPage, setCurrentPage] = useState(0)
   const [isSoundEnabled, setIsSoundEnabled] = useState(true)
   const [activeFormat, setActiveFormat] = useState<'all' | 'markdown' | 'pdf' | 'epub' | 'txt' | 'code'>('all')
+  const [pageW, setPageW] = useState(BASE_PAGE_W)
+  const [pageH, setPageH] = useState(BASE_PAGE_H)
   const flipBookRef = useRef<any>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const spreadW = pageW * 2
+
+  // Render the flipbook at REAL pixels that fill the stage (no CSS scale, which
+  // would blur the page text/images). Re-runs whenever the modal opens so the
+  // stage exists to be measured; a key change on HTMLFlipBook remounts it.
+  useEffect(() => {
+    if (!isOpen) return
+    const el = stageRef.current
+    if (!el) return
+    const update = () => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return
+      const availW = Math.max(rect.width - 24, 320)
+      const availH = Math.max(rect.height - 12, 260)
+      let h = availH
+      let w = h * PAGE_RATIO
+      if (w * 2 > availW) {
+        w = availW / 2
+        h = w / PAGE_RATIO
+      }
+      h = Math.min(Math.max(h, 300), 1150)
+      w = Math.min(Math.max(w, 240), 950)
+      setPageH(Math.round(h))
+      setPageW(Math.round(w))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [isOpen])
 
   const coverOpen = stage === 'cover_open' || stage === 'reading'
   const isReading = stage === 'reading'
@@ -524,7 +587,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const pages: BookPageItem[] = useMemo(() => {
     if (!book) return []
     return book.bookPages || [
-    { pageNumber: 1, title: '封面', type: 'cover', image: book.coverUrl },
+    { pageNumber: 1, title: '封面', type: 'cover', image: toAbsolute(book.coverUrl) },
     {
       pageNumber: 2,
       title: '扉页与索引',
@@ -620,12 +683,13 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
           book={book}
           totalPages={totalPages}
           activeFormatView={activeFormat}
+          isActive={Math.abs(idx - currentPage) <= 3}
           onTurnNext={handleNextPage}
           onTurnPrev={handlePrevPage}
         />
       ))
     },
-    [pages, book, totalPages, activeFormat, handleNextPage, handlePrevPage]
+    [pages, book, totalPages, activeFormat, currentPage, handleNextPage, handlePrevPage]
   )
 
   if (!isOpen || !book) return null
@@ -715,12 +779,13 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
           }}
         />
 
-        {/* Floating Modal Frame (overflow-visible to let curling pages rotate beyond bounds) */}
-        <div className="relative w-full max-w-6xl h-[92vh] rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-2xl overflow-visible flex flex-col justify-between p-4 sm:p-6 backdrop-blur-md">
+        {/* Floating Modal Frame (overflow-visible to let curling pages rotate beyond bounds).
+            Toolbars are ABSOLUTE overlays so the book fills the entire screen height. */}
+        <div className="relative w-full max-w-[1750px] h-screen rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-2xl overflow-visible backdrop-blur-md">
 
-          {/* Top Control Bar with Format Selector */}
-          <div className="relative z-30 flex flex-wrap items-center justify-between gap-3 pb-3">
-            <div className="flex items-center space-x-3">
+          {/* Top Control Bar with Format Selector (floating overlay) */}
+          <div className="absolute top-0 left-0 right-0 z-30 flex flex-nowrap items-center justify-between gap-2 px-2 sm:px-3 py-2 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent rounded-t-3xl">
+            <div className="flex items-center space-x-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={handleCloseAndReturn}
@@ -730,7 +795,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 <span>合上并归还书架 (Esc)</span>
               </button>
 
-              <div className="hidden sm:flex items-center space-x-2 text-xs">
+              <div className="hidden xl:flex items-center space-x-2 text-xs">
                 <span className="font-bold text-slate-100">{book.title}</span>
                 <span className="text-slate-500">•</span>
                 <span className="text-slate-400">{book.author}</span>
@@ -738,8 +803,8 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             </div>
 
             {/* Format Filter Bar (Markdown / PDF / EPUB / Code) */}
-            <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
-              <span className="px-2 text-slate-400 font-sans text-xs">格式视图:</span>
+            <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-[11px] font-mono overflow-x-auto">
+              <span className="px-2 text-slate-400 font-sans text-xs whitespace-nowrap">格式视图:</span>
               {[
                 { id: 'all', label: '全格式混排', icon: Layers },
                 { id: 'markdown', label: 'Markdown', icon: FileText },
@@ -809,9 +874,10 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             </div>
           </div>
 
-          {/* MAIN 3D WORKSPACE STAGE (GPU Accelerated Spatial Transforms) */}
+          {/* MAIN 3D WORKSPACE STAGE (GPU Accelerated Spatial Transforms) — fills the whole frame */}
           <div
-            className="relative flex-1 flex items-center justify-center my-2 overflow-visible"
+            ref={stageRef}
+            className="absolute inset-0 flex items-center justify-center overflow-visible"
             style={{ perspective: '2200px' }}
           >
             {/* 3D Spatial Animated Book Container */}
@@ -844,8 +910,8 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
               <motion.div
                 className="relative rounded-2xl overflow-visible flex items-center justify-center"
                 style={{
-                  width: `${SPREAD_W}px`,
-                  height: `${PAGE_H}px`,
+                  width: `${spreadW}px`,
+                  height: `${pageH}px`,
                   zIndex: 10,
                   pointerEvents: isReading ? 'auto' : 'none'
                 }}
@@ -854,14 +920,15 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 transition={flipOpacityTransition}
               >
                 <HTMLFlipBook
+                  key={`${pageW}x${pageH}`}
                   ref={flipBookRef}
-                  width={PAGE_W}
-                  height={PAGE_H}
+                  width={pageW}
+                  height={pageH}
                   size="fixed"
-                  minWidth={320}
-                  maxWidth={540}
-                  minHeight={400}
-                  maxHeight={650}
+                  minWidth={240}
+                  maxWidth={950}
+                  minHeight={300}
+                  maxHeight={1150}
                   maxShadowOpacity={0.25}
                   drawShadow={true}
                   flippingTime={600}
@@ -885,49 +952,51 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
               </motion.div>
 
               {/* ===== Realistic closed-book cover rig — swings OVER the flipbook, revealing it ===== */}
-              <CoverRig book={book} coverOpen={coverOpen} stage={stage} />
+              <CoverRig book={book} coverOpen={coverOpen} stage={stage} pageW={pageW} pageH={pageH} spreadW={spreadW} />
             </motion.div>
           </div>
 
-          {/* Bottom Toolbar & Page Navigation Bar */}
-          <div className="relative z-30 flex items-center justify-between pt-3 border-t border-slate-800/80">
+          {/* Bottom Toolbar & Page Navigation Bar (floating overlay) */}
+          <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-2 px-2 sm:px-3 py-2 pt-3 border-t border-slate-800/80 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent rounded-b-3xl">
             <button
               type="button"
               onClick={handlePrevPage}
               disabled={currentPage === 0 || !isReading}
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-teal-500/40 text-slate-200 text-xs font-semibold disabled:opacity-30 transition-all cursor-pointer shadow-md"
+              className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-teal-500/40 text-slate-200 text-xs font-semibold disabled:opacity-30 transition-all cursor-pointer shadow-md"
             >
               <ChevronLeft className="w-4 h-4 text-teal-400" />
               <span>上一页 (←)</span>
             </button>
 
-            {/* Quick Page Jump Tracker */}
-            <div className="flex items-center space-x-1.5">
-              {pages.map((p, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    if (flipBookRef.current?.pageFlip()) {
-                      flipBookRef.current.pageFlip().turnToPage(i)
-                      playPageFlipSound()
-                    }
-                  }}
-                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                    i === currentPage
-                      ? 'w-6 bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md shadow-teal-500/40'
-                      : 'w-2 bg-slate-700 hover:bg-slate-500'
-                  }`}
-                  title={`第 ${i + 1} 页 (${p.format || p.type})`}
-                />
-              ))}
+            {/* Quick Page Jump Tracker (scrolls internally when many pages) */}
+            <div className="flex-1 min-w-0 flex items-center justify-center">
+              <div className="flex items-center space-x-1.5 overflow-x-auto py-1">
+                {pages.map((p, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      if (flipBookRef.current?.pageFlip()) {
+                        flipBookRef.current.pageFlip().turnToPage(i)
+                        playPageFlipSound()
+                      }
+                    }}
+                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 ${
+                      i === currentPage
+                        ? 'w-6 bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md shadow-teal-500/40'
+                        : 'w-2 bg-slate-700 hover:bg-slate-500'
+                    }`}
+                    title={`第 ${i + 1} 页 (${p.format || p.type})`}
+                  />
+                ))}
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleNextPage}
               disabled={currentPage >= totalPages - 1 || !isReading}
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 text-xs font-bold disabled:opacity-30 transition-all cursor-pointer shadow-lg shadow-teal-500/20"
+              className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 text-xs font-bold disabled:opacity-30 transition-all cursor-pointer shadow-lg shadow-teal-500/20"
             >
               <span>下一页 (→)</span>
               <ChevronRight className="w-4 h-4" />

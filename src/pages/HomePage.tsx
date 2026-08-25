@@ -1,6 +1,7 @@
 import React from 'react'
 import { NavigationTab, Post, HobbyVideo, Book } from '../types'
 import { BookOpen, Film, BookmarkCheck, Sparkles, ArrowRight, Code2, Compass, Play, Eye, Calendar, Star } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface HomePageProps {
   onNavigate: (tab: NavigationTab) => void
@@ -182,7 +183,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               {post.coverImage && (
                 <div className="relative h-44 overflow-hidden">
                   <img
-                    src={post.coverImage}
+                    src={toAbsolute(post.coverImage)}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -240,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="flex items-center space-x-4 p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 cursor-pointer transition-all group"
               >
                 <div className="relative w-24 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src={vid.posterUrl} alt={vid.title} className="w-full h-full object-cover" />
+                  <img src={toAbsolute(vid.posterUrl)} alt={vid.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/20 transition-all">
                     <Play className="w-5 h-5 fill-white text-white" />
                   </div>
@@ -287,7 +288,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="flex items-center space-x-4 p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 cursor-pointer transition-all group"
               >
                 <img
-                  src={bk.coverUrl}
+                  src={toAbsolute(bk.coverUrl)}
                   alt={bk.title}
                   className="w-12 h-16 object-cover rounded-md shadow-md border border-slate-700 flex-shrink-0"
                 />

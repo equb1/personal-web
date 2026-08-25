@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Book } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { toAbsolute } from '../utils/url'
 import {
   X,
   ChevronLeft,
@@ -486,7 +487,7 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
                     className="absolute inset-0 rounded-r-2xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-900"
                   >
                     <img
-                      src={book.coverUrl}
+                      src={toAbsolute(book.coverUrl)}
                       alt={book.title}
                       className="w-full h-full object-cover"
                     />

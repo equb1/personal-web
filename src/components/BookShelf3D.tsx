@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { motion, animate } from 'framer-motion'
 import { Book } from '../types'
 import { Compass, RotateCw, Undo2, BookmarkCheck } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface BookShelf3DProps {
   books: Book[]
@@ -336,7 +337,7 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
                   className="absolute inset-0 rounded-r-xl overflow-hidden shadow-2xl bg-slate-900 border-y border-r border-slate-600/60"
                 >
                   <img
-                    src={b.coverUrl}
+                    src={toAbsolute(b.coverUrl)}
                     alt={b.title}
                     draggable={false}
                     className="w-full h-full object-cover select-none pointer-events-none"

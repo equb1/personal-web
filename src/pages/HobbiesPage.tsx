@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { HobbyVideo } from '../types'
 import { Film, Play, Eye, Calendar, Clock } from 'lucide-react'
+import { toAbsolute } from '../utils/url'
 
 interface HobbiesPageProps {
   videos: HobbyVideo[]
@@ -66,7 +67,7 @@ export const HobbiesPage: React.FC<HobbiesPageProps> = ({ videos, onSelectVideo 
             {/* Video Poster with Play Overlay */}
             <div className="relative aspect-video overflow-hidden bg-slate-950">
               <img
-                src={video.posterUrl}
+                src={toAbsolute(video.posterUrl)}
                 alt={video.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
