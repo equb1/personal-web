@@ -190,9 +190,89 @@ const post = {
 | `Comment` | id, author, avatar, content, date, likes |
 | `PostStats` | id, postId(unique), views, likes |
 
-- `TypeOrmModule.forRoot({ type: 'better-sqlite3', database: process.env.DB_PATH, synchronize: true, autoLoadEntities: true })`。
+- `TypeOrmModule.forRootAsync({ useFactory: () => ({ type: 'better-sqlite3', database: process.env.DB_PATH, synchronize: true, autoLoadEntities: true }) })`。
 - 只有 `comments` 与 `stats` 两个写模块；其余全部只读文件。
 - 换 Postgres 时仅改 driver + `type`，schema 不动。
+
+### 6.1 数据库怎么创建（SQLite 无需手动建库）
+
+SQLite 是**单文件数据库，由 TypeORM 首次连接时自动创建**，不需要手动建库/建表：
+
+1. **配好路径**：`.env` 里 `DB_PATH=./data/blog.db`（代码里给默认值 `process.env.DB_PATH || './data/blog.db'`）。
+2. **写好实体**：`Comment`、`PostStats` 用 TypeORM 装饰器定义（见 §6.2）。
+3. **启动即建库**：首次 `npm run start:dev`（或执行一次 `npm run db:init`），TypeORM 连接时自动创建 `data/blog.db` 文件，并按实体 + `synchronize: true` 自动生成 `comments`、`post_stats` 两张表。
+4. **注意**：`better-sqlite3` 会自动建文件，但**不会自动建父目录**——`data/` 目录要预先存在（`mkdir` 或用 Node `fs.mkdirSync(..., { recursive: true })`）。
+5. **预览**：用 SQLiteStudio / DB Browser for SQLite 打开 `data/blog.db` 查看；或 CLI `sqlite3 data/blog.db .tables`。
+6. **生产**：关闭 `synchronize`，改用 `npm run typeorm migration:generate/run`（migration 同样会自动建库建表）。
+
+### 6.2 实体示例（可直接运行的骨架）
+
+```ts
+// src/comments/comment.entity.ts
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+
+@Entity('comments')
+export class Comment {
+  @PrimaryGeneratedColumn('uuid')
+  id: string
+
+  @Column()
+  author: string
+
+  @Column({ default: '' })
+  avatar: string
+
+  @Column('text')
+  content: string
+
+  @Column({ default: () => "datetime('now', 'localtime')" })
+  date: string
+
+  @Column({ default: 0 })
+  likes: number
+}
+```
+
+```ts
+// src/stats/post-stats.entity.ts
+import { Column, Entity, PrimaryColumn } from 'typeorm'
+
+@Entity('post_stats')
+export class PostStats {
+  @PrimaryColumn()
+  postId: string
+
+  @Column({ default: 0 })
+  views: number
+
+  @Column({ default: 0 })
+  likes: number
+}
+```
+
+### 6.3 一键初始化脚本（`npm run db:init`）
+
+```ts
+// src/database/init.ts
+import 'reflect-metadata'
+import { NestFactory } from '@nestjs/core'
+import { DataSource } from 'typeorm'
+import { AppModule } from '../app.module'
+
+async function init() {
+  const app = await NestFactory.createApplicationContext(AppModule) // 触发 TypeORM 连接 → 自动建库建表
+  const ds = app.get(DataSource)
+  const tables: { name: string }[] = await ds.query(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+  )
+  console.log('✅ 已创建表:', tables.map((t) => t.name).join(', '))
+  console.log('📦 SQLite 数据库就绪:', process.env.DB_PATH || './data/blog.db')
+  await app.close()
+}
+init()
+```
+
+`package.json`: `"db:init": "ts-node --transpile-only -r tsconfig-paths/register src/database/init.ts"`。
 
 ---
 
@@ -321,3 +401,4 @@ bootstrap()
 - **SQLite 文件丢失**：`DB_PATH` 指向持久化路径；Docker 部署必须挂卷（见 CONTENT_MANAGEMENT.md §8）。
 - **`synchronize: true` 仅限开发**：生产切换 Postgres 前关闭或改用 migration。
 - **导出脚本连接 DB**：若 AppModule 连 DB 失败会中断导出，可让 export 脚本使用不含 DB 模块的独立模块，或确保 DB 可连。
+- **Node 20 版本兼容（实测踩坑）**：`better-sqlite3` 最新 12.x 无 Node 20 预编译二进制（会触发 node-gyp 编译，需 Python），且 `typeorm` 1.x 强制要求它。需固定：`better-sqlite3@^11` + `typeorm@^0.3` + `typescript@^5`（TS v6 移除了 `baseUrl` 且要求显式 `rootDir`）。
