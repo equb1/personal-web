@@ -54,6 +54,17 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
   })
   const timeoutsRef = useRef<number[]>([])
 
+  // Normalize an angle to [0, 360).
+  const normalizeAngle = (deg: number) => ((deg % 360) + 360) % 360
+
+  // Snap `target` to the whole-turn equivalent nearest to `current`, so framer-
+  // motion tweens take the shortest path instead of spinning backwards a full
+  // turn (which is what "跳回起点重新转" felt like).
+  const nearCurrent = (target: number, current: number) => {
+    const diff = normalizeAngle(target - current)
+    return current + (diff > 180 ? diff - 360 : diff)
+  }
+
   // Reset inspection if the book leaves the list (filter change)
   useEffect(() => {
     if (inspectBook && !books.some((b) => b.id === inspectBook.id)) {
@@ -83,10 +94,12 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inspectBook])
 
-  // Auto-rotate the inspected book
+  // Auto-rotate the inspected book — rotateY grows unbounded so the rotation is
+  // continuous; wrapping it with `% 360` made framer-motion tween backwards a
+  // full turn each time it crossed 360°.
   useEffect(() => {
     if (!inspectBook || phase || isDraggingBook || !autoRotate) return
-    const id = setInterval(() => setRotateY((p) => (p + 0.8) % 360), 16)
+    const id = setInterval(() => setRotateY((p) => p + 0.8), 16)
     return () => clearInterval(id)
   }, [inspectBook, phase, isDraggingBook, autoRotate])
 
@@ -175,7 +188,7 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
     setPhase('pull')
     onInspectChange(book)
     setRotateX(8)
-    setRotateY(-25)
+    setRotateY((prev) => nearCurrent(-25, prev))
     setAutoRotate(false)
     timeoutsRef.current.push(window.setTimeout(() => setPhase(null), 720))
   }
@@ -196,7 +209,7 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
   const setAnglePreset = (x: number, y: number) => {
     setAutoRotate(false)
     setRotateX(x)
-    setRotateY(y)
+    setRotateY((prev) => nearCurrent(y, prev))
   }
 
   return (
@@ -291,8 +304,8 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
               phase === 'pull' && isInspecting
                 ? { duration: 0.7, ease: EASE }
                 : phase === 'return' && isInspecting
-                ? { duration: 0.52, ease: EASE }
-                : isDraggingBook
+                ? { duration: 0.4, ease: EASE }
+                : isDraggingBook || autoRotate
                 ? { duration: 0 }
                 : { duration: 0.35 }
 
@@ -457,7 +470,7 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
           className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-950/85 border border-slate-800 text-xs font-mono shadow-2xl max-w-full"
         >
           <span className="px-2 text-teal-400 whitespace-nowrap">
-            X:{Math.round(rotateX)}° Y:{Math.round(rotateY)}°
+            X:{Math.round(rotateX)}° Y:{Math.round(normalizeAngle(rotateY))}°
           </span>
           <button
             type="button"
