@@ -66,9 +66,12 @@ export const BookShelf3D: React.FC<BookShelf3DProps> = ({ books, onRead, onInspe
     return current + (diff > 180 ? diff - 360 : diff)
   }
 
-  // Reset inspection if the book leaves the list (filter change)
+  // Reset inspection if the book leaves the list (filter change). Stays in an
+  // effect because onInspectChange() notifies the parent (calling it during
+  // render is not allowed); this is an external-system sync, not derived state.
   useEffect(() => {
     if (inspectBook && !books.some((b) => b.id === inspectBook.id)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInspectBook(null)
       onInspectChange(null)
       setPhase(null)

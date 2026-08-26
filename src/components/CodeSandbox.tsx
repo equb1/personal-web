@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef } from 'react'
 import { CodingChallenge, SupportedLanguage } from '../types'
 import {
   Play,
@@ -15,8 +15,7 @@ import {
   Download,
   Square,
   FileCode,
-  Code2,
-  AlertTriangle
+  Code2
 } from 'lucide-react'
 
 interface CodeSandboxProps {
@@ -71,15 +70,16 @@ export const CodeSandbox: React.FC<CodeSandboxProps> = ({ challenge }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<{ aborted: boolean }>({ aborted: false })
 
-  // Initialize or update language code
-  useEffect(() => {
+  // Derive editor code from (challenge, currentLang, showSolution) at render
+  // time instead of syncing in an effect — user edits between dependency
+  // changes are preserved just like the old effect-based reset.
+  const [prevTemplateKey, setPrevTemplateKey] = useState('')
+  const templateKey = `${challenge.id}|${currentLang}|${showSolution}`
+  if (templateKey !== prevTemplateKey) {
+    setPrevTemplateKey(templateKey)
     const template = challenge.languageTemplates?.find((t) => t.language === currentLang)
-    if (template) {
-      setCode(showSolution ? template.solutionCode : template.starterCode)
-    } else {
-      setCode(showSolution ? challenge.solutionCode : challenge.starterCode)
-    }
-  }, [challenge, currentLang, showSolution])
+    setCode(template ? (showSolution ? template.solutionCode : template.starterCode) : (showSolution ? challenge.solutionCode : challenge.starterCode))
+  }
 
   const handleLanguageChange = (lang: SupportedLanguage) => {
     setCurrentLang(lang)
@@ -244,7 +244,7 @@ async function runAllTests() {
     const newLogs: LogEntry[] = []
     const newTestResults: TestCaseResult[] = []
 
-    const captureLog = (type: 'log' | 'warn' | 'error' | 'info', ...args: any[]) => {
+    const captureLog = (type: 'log' | 'warn' | 'error' | 'info', ...args: unknown[]) => {
       if (abortControllerRef.current.aborted) return
       const formatted = args
         .map((arg) => {
@@ -280,10 +280,10 @@ async function runAllTests() {
     try {
       const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
       const mockConsole = {
-        log: (...args: any[]) => captureLog('log', ...args),
-        warn: (...args: any[]) => captureLog('warn', ...args),
-        error: (...args: any[]) => captureLog('error', ...args),
-        info: (...args: any[]) => captureLog('info', ...args),
+        log: (...args: unknown[]) => captureLog('log', ...args),
+        warn: (...args: unknown[]) => captureLog('warn', ...args),
+        error: (...args: unknown[]) => captureLog('error', ...args),
+        info: (...args: unknown[]) => captureLog('info', ...args),
       }
 
       // 1. Run main code snippet with 1500ms timeout
@@ -313,7 +313,6 @@ async function runAllTests() {
 
             const actualStr = JSON.stringify(actualValue)
             const expectedStr = tc.expectedOutput.replace(/\s+/g, '')
-            const passed = actualStr === expectedStr || JSON.stringify(actualStr) === expectedStr
 
             newTestResults.push({
               id: tc.id,
@@ -322,20 +321,20 @@ async function runAllTests() {
               actual: actualStr || String(actualValue),
               expected: tc.expectedOutput
             })
-          } catch (err: any) {
+          } catch (err) {
             newTestResults.push({
               id: tc.id,
               name: tc.name,
               passed: false,
               actual: 'Execution Error / Timeout',
               expected: tc.expectedOutput,
-              error: err.message || String(err)
+              error: err instanceof Error ? err.message : String(err)
             })
           }
         }
       }
-    } catch (err: any) {
-      captureLog('error', `运行时提示: ${err.message || String(err)}`)
+    } catch (err) {
+      captureLog('error', `运行时提示: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       if (!abortControllerRef.current.aborted) {
         setLogs(newLogs)

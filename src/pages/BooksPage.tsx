@@ -76,14 +76,14 @@ export const BooksPage: React.FC<BooksPageProps> = ({ books, onSelectBook }) => 
         {/* Status Filter Tabs */}
         <div className="pt-4 flex flex-wrap gap-2">
           {[
-            { id: 'all', label: '全部藏书' },
-            { id: 'reading', label: '正在阅读中' },
-            { id: 'completed', label: '已研读完结' }
+            { id: 'all' as const, label: '全部藏书' },
+            { id: 'reading' as const, label: '正在阅读中' },
+            { id: 'completed' as const, label: '已研读完结' }
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => {
-                setFilterStatus(item.id as any)
+                setFilterStatus(item.id)
                 setInspectBook(null)
               }}
               className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${

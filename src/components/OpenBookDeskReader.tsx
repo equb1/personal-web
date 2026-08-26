@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Book } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { toAbsolute } from '../utils/url'
@@ -159,33 +159,40 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
 
   const totalSpreads = spreads.length
 
+  // Reset reader state synchronously whenever the book changes (render-time
+  // derivation, so no cascading render), and orchestrate the open-animation
+  // timers in the effect below.
+  const [prevBookId, setPrevBookId] = useState<string | null>(null)
+  const activeBookId = book?.id ?? null
+  if (activeBookId !== prevBookId) {
+    setPrevBookId(activeBookId)
+    setCurrentSpread(0)
+    setFlipState(null)
+    setReaderState('closed')
+  }
+
   // Sequential Stage Orchestration
   useEffect(() => {
-    if (book) {
-      setCurrentSpread(0)
-      setFlipState(null)
-      // Step 1: Explicit closed book on desk
-      setReaderState('closed')
+    if (!book) return
+    // Step 1: Explicit closed book on desk (set by render-time reset above)
+    // Step 2: Smooth unfolding begins after 400ms
+    const t1 = setTimeout(() => {
+      setReaderState('unfolding')
+    }, 400)
 
-      // Step 2: Smooth unfolding begins after 400ms
-      const t1 = setTimeout(() => {
-        setReaderState('unfolding')
-      }, 400)
+    // Step 3: Unfolding completes (400 + 950 = 1350ms)
+    const t2 = setTimeout(() => {
+      setReaderState('reading')
+    }, 1350)
 
-      // Step 3: Unfolding completes (400 + 950 = 1350ms)
-      const t2 = setTimeout(() => {
-        setReaderState('reading')
-      }, 1350)
-
-      return () => {
-        clearTimeout(t1)
-        clearTimeout(t2)
-      }
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
     }
   }, [book])
 
   // Sequential Close Orchestration: Fold close -> Exit
-  const handleStartClose = () => {
+  const handleStartClose = useCallback(() => {
     if (readerState !== 'reading') return
 
     // Fold cover from left back to right over right page (850ms)
@@ -194,9 +201,9 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
     setTimeout(() => {
       onClose()
     }, 850)
-  }
+  }, [readerState, onClose])
 
-  const handleNextPage = () => {
+  const handleNextPage = useCallback(() => {
     if (currentSpread < totalSpreads - 1 && !flipState && readerState === 'reading') {
       const from = currentSpread
       const to = currentSpread + 1
@@ -206,9 +213,9 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
         setFlipState(null)
       }, 700)
     }
-  }
+  }, [currentSpread, flipState, readerState, totalSpreads])
 
-  const handlePrevPage = () => {
+  const handlePrevPage = useCallback(() => {
     if (currentSpread > 0 && !flipState && readerState === 'reading') {
       const from = currentSpread
       const to = currentSpread - 1
@@ -218,7 +225,7 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
         setFlipState(null)
       }, 700)
     }
-  }
+  }, [currentSpread, flipState, readerState])
 
   // Keyboard controls
   useEffect(() => {
@@ -238,7 +245,7 @@ export const OpenBookDeskReader: React.FC<OpenBookDeskReaderProps> = ({ book, on
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [readerState, currentSpread, flipState])
+  }, [readerState, currentSpread, flipState, handleNextPage, handlePrevPage, handleStartClose])
 
   if (!book) return null
 

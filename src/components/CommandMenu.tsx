@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Post, HobbyVideo, Book, Project, NavigationTab } from '../types'
 import { Search, BookOpen, Film, BookmarkCheck, Sparkles, X, ArrowRight, CornerDownLeft, Command } from 'lucide-react'
 
@@ -37,62 +37,95 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [wasOpen, setWasOpen] = useState(isOpen)
 
+  // Reset search state each time the menu opens — derived at render time (React
+  // official "adjusting state when a prop changes" pattern) instead of syncing
+  // in an effect, which avoids cascading renders.
+  if (isOpen && !wasOpen) {
+    setWasOpen(true)
+    setQuery('')
+    setSelectedIndex(0)
+  } else if (!isOpen && wasOpen) {
+    setWasOpen(false)
+  }
+
+  // Focus the search input once the menu is open
   useEffect(() => {
-    if (isOpen) {
-      setQuery('')
-      setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
+    if (!isOpen) return
+    const id = setTimeout(() => inputRef.current?.focus(), 50)
+    return () => clearTimeout(id)
   }, [isOpen])
 
   // Filter items
-  const results: SearchResultItem[] = []
+  const results = useMemo<SearchResultItem[]>(() => {
+    const items: SearchResultItem[] = []
 
-  if (query.trim() === '') {
-    // Default suggestions when query is empty
-    results.push(
-      { type: 'nav', data: { id: 'home', label: '前往 首页 (Home Hub)' } },
-      { type: 'nav', data: { id: 'learning', label: '前往 学习 (Markdown 文章库)' } },
-      { type: 'nav', data: { id: 'hobbies', label: '前往 兴趣 (4K 视频画廊)' } },
-      { type: 'nav', data: { id: 'books', label: '前往 书籍 (3D 虚拟书房)' } },
-      { type: 'nav', data: { id: 'other', label: '前往 其他 (Showcase & 留言板)' } }
-    )
-  } else {
-    const q = query.toLowerCase()
+    if (query.trim() === '') {
+      // Default suggestions when query is empty
+      items.push(
+        { type: 'nav', data: { id: 'home', label: '前往 首页 (Home Hub)' } },
+        { type: 'nav', data: { id: 'learning', label: '前往 学习 (Markdown 文章库)' } },
+        { type: 'nav', data: { id: 'hobbies', label: '前往 兴趣 (4K 视频画廊)' } },
+        { type: 'nav', data: { id: 'books', label: '前往 书籍 (3D 虚拟书房)' } },
+        { type: 'nav', data: { id: 'other', label: '前往 其他 (Showcase & 留言板)' } }
+      )
+    } else {
+      const q = query.toLowerCase()
 
-    // 1. Articles
-    posts.forEach((p) => {
-      if (
-        p.title.toLowerCase().includes(q) ||
-        p.summary.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q))
-      ) {
-        results.push({ type: 'post', data: p })
+      // 1. Articles
+      posts.forEach((p) => {
+        if (
+          p.title.toLowerCase().includes(q) ||
+          p.summary.toLowerCase().includes(q) ||
+          p.tags.some((t) => t.toLowerCase().includes(q))
+        ) {
+          items.push({ type: 'post', data: p })
+        }
+      })
+
+      // 2. Videos
+      videos.forEach((v) => {
+        if (v.title.toLowerCase().includes(q) || v.description.toLowerCase().includes(q)) {
+          items.push({ type: 'video', data: v })
+        }
+      })
+
+      // 3. Books
+      books.forEach((b) => {
+        if (b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)) {
+          items.push({ type: 'book', data: b })
+        }
+      })
+
+      // 4. Projects
+      projects.forEach((pj) => {
+        if (pj.title.toLowerCase().includes(q) || pj.description.toLowerCase().includes(q)) {
+          items.push({ type: 'project', data: pj })
+        }
+      })
+    }
+
+    return items
+  }, [query, posts, videos, books, projects])
+
+  const handleExecuteItem = useCallback(
+    (item: SearchResultItem) => {
+      onClose()
+      if (item.type === 'post') {
+        onSelectPost(item.data)
+      } else if (item.type === 'video') {
+        onSelectVideo(item.data)
+      } else if (item.type === 'book') {
+        onSelectBook(item.data)
+      } else if (item.type === 'nav') {
+        onNavigate(item.data.id)
+      } else if (item.type === 'project') {
+        onNavigate('other')
       }
-    })
-
-    // 2. Videos
-    videos.forEach((v) => {
-      if (v.title.toLowerCase().includes(q) || v.description.toLowerCase().includes(q)) {
-        results.push({ type: 'video', data: v })
-      }
-    })
-
-    // 3. Books
-    books.forEach((b) => {
-      if (b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)) {
-        results.push({ type: 'book', data: b })
-      }
-    })
-
-    // 4. Projects
-    projects.forEach((pj) => {
-      if (pj.title.toLowerCase().includes(q) || pj.description.toLowerCase().includes(q)) {
-        results.push({ type: 'project', data: pj })
-      }
-    })
-  }
+    },
+    [onClose, onSelectPost, onSelectVideo, onSelectBook, onNavigate]
+  )
 
   // Keyboard navigation inside menu
   useEffect(() => {
@@ -117,22 +150,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, results, selectedIndex])
-
-  const handleExecuteItem = (item: SearchResultItem) => {
-    onClose()
-    if (item.type === 'post') {
-      onSelectPost(item.data)
-    } else if (item.type === 'video') {
-      onSelectVideo(item.data)
-    } else if (item.type === 'book') {
-      onSelectBook(item.data)
-    } else if (item.type === 'nav') {
-      onNavigate(item.data.id)
-    } else if (item.type === 'project') {
-      onNavigate('other')
-    }
-  }
+  }, [isOpen, results, selectedIndex, handleExecuteItem, onClose])
 
   if (!isOpen) return null
 

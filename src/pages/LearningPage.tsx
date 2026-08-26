@@ -3,7 +3,7 @@ import { Post, PostType } from '../types'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { CodeSandbox } from '../components/CodeSandbox'
 import { QuizCard } from '../components/QuizCard'
-import { Search, Calendar, Eye, ThumbsUp, ArrowLeft, BookOpen, Clock, Code2, HelpCircle, FileText, CheckCircle2 } from 'lucide-react'
+import { Search, Calendar, Eye, ThumbsUp, ArrowLeft, BookOpen, Clock, Code2, HelpCircle, FileText } from 'lucide-react'
 import { toAbsolute } from '../utils/url'
 
 interface LearningPageProps {
@@ -18,11 +18,8 @@ export const LearningPage: React.FC<LearningPageProps> = ({
   setSelectedPost
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [liked, setLiked] = useState(false)
-
-  const categories = ['all', ...Array.from(new Set(posts.map((p) => p.category)))]
 
   const filteredPosts = posts.filter((post) => {
     const matchesSearch =
@@ -30,10 +27,9 @@ export const LearningPage: React.FC<LearningPageProps> = ({
       post.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    const matchesCategory = selectedCategory === 'all' || post.category === selectedCategory
     const matchesType = selectedType === 'all' || post.type === selectedType || (!post.type && selectedType === 'article')
 
-    return matchesSearch && matchesCategory && matchesType
+    return matchesSearch && matchesType
   })
 
   // Active Reading / Interactive Practice View

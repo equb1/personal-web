@@ -11,7 +11,7 @@ interface MarkdownRendererProps {
 
 /**
  * CommonMark treats 4+ leading spaces as an indented CODE BLOCK. Auto-generated
- * TOC/list content often carries 4-space indentation (e.g. "    - 3.2.1　…"),
+ * TOC/list content often carries 4-space indentation (e.g. "    - 3.2.1 …"),
  * which silently renders the first lines as <pre> instead of a nested list.
  * Normalize: uniformly drop 2 leading spaces from any line that is an INDENTED
  * LIST ITEM (4+ spaces before a list marker). Relative nesting is preserved and

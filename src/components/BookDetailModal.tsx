@@ -10,11 +10,7 @@ import {
   Clock,
   BookOpen,
   Edit3,
-  Columns2,
-  FileText,
-  Calendar,
-  Layers,
-  Sparkles
+  Columns2
 } from 'lucide-react'
 
 interface BookDetailModalProps {

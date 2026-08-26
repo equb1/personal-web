@@ -1,7 +1,7 @@
 import React, { forwardRef, useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HTMLFlipBook from 'react-pageflip'
-import { Book, BookPageItem, BookFormat } from '../types'
+import { Book, BookPageItem } from '../types'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { toAbsolute } from '../utils/url'
 import {
@@ -10,19 +10,13 @@ import {
   ChevronRight,
   BookOpen,
   BookmarkCheck,
-  Compass,
   RotateCcw,
   Volume2,
   VolumeX,
   FileText,
-  Code,
   FileCode,
   FileType,
-  Download,
-  Layers,
-  ZoomIn,
-  ZoomOut,
-  Maximize2
+  Layers
 } from 'lucide-react'
 
 interface Interactive3DBookProps {
@@ -54,7 +48,7 @@ interface PageBlockProps {
  * Must have forwardRef for react-pageflip DOM measurements & GPU transforms
  */
 const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
-  ({ pageData, book, totalPages, activeFormatView, isActive = true, onTurnNext, onTurnPrev }, ref) => {
+  ({ pageData, book, totalPages, isActive = true }, ref) => {
     const isOdd = pageData.pageNumber % 2 !== 0
     const isCover = pageData.type === 'cover'
     const isBackCover = pageData.type === 'back-cover'
@@ -409,7 +403,16 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const [activeFormat, setActiveFormat] = useState<'all' | 'markdown' | 'pdf' | 'epub' | 'txt' | 'code'>('all')
   const [pageW, setPageW] = useState(BASE_PAGE_W)
   const [pageH, setPageH] = useState(BASE_PAGE_H)
-  const flipBookRef = useRef<any>(null)
+  const [isHoverTopBar, setIsHoverTopBar] = useState(false)
+  const [isHoverBottomBar, setIsHoverBottomBar] = useState(false)
+  const flipBookRef = useRef<{
+    pageFlip: () => {
+      flipNext: () => void
+      flipPrev: () => void
+      turnToPage: (page: number) => void
+      getCurrentPageIndex: () => number
+    }
+  } | null>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const spreadW = pageW * 2
 
@@ -489,13 +492,25 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     }
   }, [isOpen, book])
 
-  // Open lifecycle: fly to desk -> swing cover open -> enter reading
-  useEffect(() => {
+  // Open lifecycle: reset stage/position synchronously at render time whenever
+  // the open target changes (fly to desk -> swing cover open -> enter reading).
+  const [prevOpenKey, setPrevOpenKey] = useState('')
+  const openKey = isOpen && book ? book.id : 'closed'
+  if (openKey !== prevOpenKey) {
+    setPrevOpenKey(openKey)
+    setIsHoverTopBar(false)
+    setIsHoverBottomBar(false)
     if (isOpen && book) {
       setStage('desk_transition')
       setCurrentPage(lastReadPage)
       setActiveFormat('all')
+    } else {
+      setStage('shelf')
+    }
+  }
 
+  useEffect(() => {
+    if (isOpen && book) {
       const t1 = setTimeout(() => setStage('cover_open'), 1500)
       const t2 = setTimeout(() => setStage('reading'), 1500 + 1400)
 
@@ -503,8 +518,6 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
         clearTimeout(t1)
         clearTimeout(t2)
       }
-    } else {
-      setStage('shelf')
     }
   }, [isOpen, book])
 
@@ -512,7 +525,10 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const playPageFlipSound = () => {
     if (!isSoundEnabled) return
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const audioCtx = new AudioContextCtor()
       const osc = audioCtx.createOscillator()
       const gain = audioCtx.createGain()
       osc.type = 'sine'
@@ -532,7 +548,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   // Handle Close & Return: cover swings shut, then the closed book settles to the
   // same pose/size as the 360° inspection book so the modal fades seamlessly back
   // into the inspection stage.
-  const handleCloseAndReturn = () => {
+  const handleCloseAndReturn = useCallback(() => {
     if (stage === 'cover_close' || stage === 'returning') return
 
     setStage('cover_close')
@@ -542,7 +558,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       onClose()
       setStage('shelf')
     }, 1400 + 900)
-  }
+  }, [stage, onClose])
 
   const handleNextPage = useCallback(() => {
     if (flipBookRef.current?.pageFlip()) {
@@ -579,7 +595,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, stage])
+  }, [isOpen, stage, handleNextPage, handlePrevPage, handleCloseAndReturn])
 
   // Ensure rich 8-page multi-format content.
   // With showCover enabled the front/back covers render as single pages (no
@@ -661,7 +677,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   ]
   }, [book])
 
-  const handleFlip = useCallback((e: any) => {
+  const handleFlip = useCallback((e: { data: number }) => {
     lastReadPage = e.data
     setCurrentPage(e.data)
     playPageFlipSound()
@@ -784,7 +800,16 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
         <div className="relative w-full max-w-[1750px] h-screen rounded-3xl bg-slate-900/40 border border-slate-800/80 shadow-2xl overflow-visible backdrop-blur-md">
 
           {/* Top Control Bar with Format Selector (floating overlay) */}
-          <div className="absolute top-0 left-0 right-0 z-30 flex flex-nowrap items-center justify-between gap-2 px-2 sm:px-3 py-2 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent rounded-t-3xl">
+          <div
+            onMouseEnter={() => setIsHoverTopBar(true)}
+            onMouseLeave={() => setIsHoverTopBar(false)}
+            className={`absolute top-0 left-0 right-0 z-30 transition-all duration-300 ${
+              isReading && !isHoverTopBar ? 'opacity-0 -translate-y-2' : 'opacity-100'
+            }`}
+          >
+            <div className={`flex flex-nowrap items-center justify-between gap-2 px-2 sm:px-3 py-2 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent rounded-t-3xl ${
+              isReading && !isHoverTopBar ? 'pointer-events-none' : 'pointer-events-auto'
+            }`}>
             <div className="flex items-center space-x-3 flex-shrink-0">
               <button
                 type="button"
@@ -806,11 +831,11 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
             <div className="flex items-center space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-[11px] font-mono overflow-x-auto">
               <span className="px-2 text-slate-400 font-sans text-xs whitespace-nowrap">格式视图:</span>
               {[
-                { id: 'all', label: '全格式混排', icon: Layers },
-                { id: 'markdown', label: 'Markdown', icon: FileText },
-                { id: 'pdf', label: 'PDF 影印', icon: FileType },
-                { id: 'epub', label: 'EPUB 流式', icon: BookOpen },
-                { id: 'code', label: '代码附录', icon: FileCode }
+                { id: 'all' as const, label: '全格式混排', icon: Layers },
+                { id: 'markdown' as const, label: 'Markdown', icon: FileText },
+                { id: 'pdf' as const, label: 'PDF 影印', icon: FileType },
+                { id: 'epub' as const, label: 'EPUB 流式', icon: BookOpen },
+                { id: 'code' as const, label: '代码附录', icon: FileCode }
               ].map((fmt) => {
                 const Icon = fmt.icon
                 return (
@@ -818,7 +843,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                     key={fmt.id}
                     type="button"
                     onClick={() => {
-                      setActiveFormat(fmt.id as any)
+                      setActiveFormat(fmt.id)
                       // Quick jump to first page of this format
                       const targetIdx = pages.findIndex(
                         (p) => fmt.id === 'all' || p.format === fmt.id || p.type === `${fmt.id}-page`
@@ -872,6 +897,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
+          </div>
           </div>
 
           {/* MAIN 3D WORKSPACE STAGE (GPU Accelerated Spatial Transforms) — fills the whole frame */}
@@ -957,7 +983,16 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
           </div>
 
           {/* Bottom Toolbar & Page Navigation Bar (floating overlay) */}
-          <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-between gap-2 px-2 sm:px-3 py-2 pt-3 border-t border-slate-800/80 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent rounded-b-3xl">
+          <div
+            onMouseEnter={() => setIsHoverBottomBar(true)}
+            onMouseLeave={() => setIsHoverBottomBar(false)}
+            className={`absolute bottom-0 left-0 right-0 z-30 transition-all duration-300 ${
+              isReading && !isHoverBottomBar ? 'opacity-0 translate-y-2' : 'opacity-100'
+            }`}
+          >
+            <div className={`flex items-center justify-between gap-2 px-2 sm:px-3 py-2 pt-3 border-t border-slate-800/80 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent rounded-b-3xl ${
+              isReading && !isHoverBottomBar ? 'pointer-events-none' : 'pointer-events-auto'
+            }`}>
             <button
               type="button"
               onClick={handlePrevPage}
@@ -1001,6 +1036,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
               <span>下一页 (→)</span>
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
           </div>
         </div>
       </motion.div>
