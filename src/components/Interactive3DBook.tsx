@@ -192,7 +192,7 @@ const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
             {/* Body — min-h-0 is REQUIRED so overflow-y-auto can actually scroll
                 (flex items default to min-height:auto, which would grow past the
                 page and get clipped instead of scrolling). */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
+            <div className="flex-1 min-h-0 overflow-y-auto book-page-scroll pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
 
               {/* FORMAT A: PDF FACSIMILE SIMULATION */}
               {pageData.type === 'pdf-page' || pageData.format === 'pdf' ? (

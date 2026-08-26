@@ -80,6 +80,25 @@
   background: #0f766e;
 }
 
+/* Light paper scrollbar for book-page content (cream pages inside the dark reader) */
+.book-page-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.book-page-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.book-page-scroll::-webkit-scrollbar-thumb {
+  background: #d8ceb8;
+  border-radius: 9999px;
+}
+
+.book-page-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b9a888;
+}
+
 /* 3D Realistic Double-Sided Page Flipping Keyframes (真正的双面内容沿中缝翻转) */
 @keyframes pageFlipNext {
   0% {
