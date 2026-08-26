@@ -41,17 +41,78 @@ interface PageBlockProps {
   isActive?: boolean
   onTurnNext?: () => void
   onTurnPrev?: () => void
+  onJumpToPage?: (pageNumber: number) => void
+  showTocReturn?: boolean
+  onReturnToToc?: () => void
 }
+
+interface TocEntry {
+  level: number
+  title: string
+  pageNumber: number
+}
+
+// Parse a "目录" page's markdown list into structured entries. Each line looks
+// like "  - 1.2.1 Java... ··· 第 42 页" — leading indentation defines nesting,
+// and the trailing "··· 第 N 页" carries the target printed page number.
+function parseTocEntries(content: string): TocEntry[] {
+  const entries: TocEntry[] = []
+  for (const raw of content.split('\n')) {
+    const trimmed = raw.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const match = /^[-*+]\s+(.+?)\s*[·.…]+\s*第\s*(\d+)\s*页\s*$/.exec(trimmed)
+    if (!match) continue
+    const indent = raw.match(/^\s*/)?.[0].length ?? 0
+    entries.push({
+      level: Math.min(6, Math.max(1, Math.floor(indent / 2) + 1)),
+      title: match[1].trim(),
+      pageNumber: parseInt(match[2], 10)
+    })
+  }
+  return entries
+}
+
+// Clickable table-of-contents rendered on the paper page (jumps to a chapter).
+const TocList: React.FC<{ entries: TocEntry[]; onJump: (pageNumber: number) => void }> = ({
+  entries,
+  onJump
+}) => (
+  <div className="space-y-0.5">
+    <h3 className="text-sm font-bold text-slate-800 mb-1.5 flex items-center space-x-1.5">
+      <BookOpen className="w-3.5 h-3.5 text-teal-700" />
+      <span>目录</span>
+    </h3>
+    {entries.map((entry, i) => (
+      <button
+        key={i}
+        type="button"
+        onClick={() => onJump(entry.pageNumber)}
+        style={{ paddingLeft: `${(entry.level - 1) * 14 + 4}px` }}
+        className="group block w-full text-left py-0.5 pr-1.5 rounded hover:bg-teal-600/10 transition-colors cursor-pointer"
+      >
+        <span className="text-[12px] leading-snug text-slate-800 group-hover:text-teal-800 font-medium pointer-events-none">
+          {entry.title}
+        </span>
+        <span className="text-slate-400 text-[11px] ml-1 pointer-events-none">··· 第 {entry.pageNumber} 页</span>
+      </button>
+    ))}
+  </div>
+)
 
 /**
  * High-definition individual Page component with forwardRef
  * Must have forwardRef for react-pageflip DOM measurements & GPU transforms
  */
 const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
-  ({ pageData, book, totalPages, isActive = true }, ref) => {
+  ({ pageData, book, totalPages, isActive = true, onJumpToPage, showTocReturn, onReturnToToc }, ref) => {
     const isOdd = pageData.pageNumber % 2 !== 0
     const isCover = pageData.type === 'cover'
     const isBackCover = pageData.type === 'back-cover'
+
+    const isTocPage =
+      pageData.title?.trim() === '目录' ||
+      pageData.content?.trim().startsWith('# 目录')
+    const tocEntries = isTocPage ? parseTocEntries(pageData.content || '') : []
 
     // Realistic warm paper texture styles (Pure uniform natural warm paper)
     const paperBackground = isCover || isBackCover
@@ -176,7 +237,7 @@ const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
           <div className="relative z-10 w-full h-full p-6 sm:p-7 flex flex-col justify-between text-slate-900">
             {/* Clean Header without divider line */}
             <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-slate-500 font-medium">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 min-w-0">
                 <span className="truncate max-w-[150px] font-bold text-slate-800">
                   {pageData.chapter || book.title}
                 </span>
@@ -184,6 +245,18 @@ const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
                   <span className="px-1.5 py-0.2 rounded text-[8.5px] uppercase font-mono bg-amber-500/15 text-amber-800 font-semibold border border-amber-500/30">
                     {pageData.format}
                   </span>
+                )}
+                {/* In-page return-to-TOC affordance — sits in the header (page
+                    chrome), never overlaps the body text. */}
+                {showTocReturn && onReturnToToc && (
+                  <button
+                    type="button"
+                    onClick={onReturnToToc}
+                    className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-teal-700/10 border border-teal-700/40 text-teal-800 font-bold hover:bg-teal-700/20 transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3 h-3 pointer-events-none" />
+                    <span className="pointer-events-none">返回目录</span>
+                  </button>
                 )}
               </div>
               <span>P. {pageData.pageNumber}</span>
@@ -193,7 +266,11 @@ const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
                 (flex items default to min-height:auto, which would grow past the
                 page and get clipped instead of scrolling). */}
             <div className="flex-1 min-h-0 overflow-y-auto book-page-scroll pr-1 my-2 text-[12px] leading-relaxed text-slate-800">
-
+              {isTocPage ? (
+                /* TABLE OF CONTENTS: clickable chapter list */
+                <TocList entries={tocEntries} onJump={(p) => onJumpToPage?.(p)} />
+              ) : (
+              <>
               {/* FORMAT A: PDF FACSIMILE SIMULATION */}
               {pageData.type === 'pdf-page' || pageData.format === 'pdf' ? (
                 <div className="space-y-2.5">
@@ -265,6 +342,8 @@ const RealisticPageInner = forwardRef<HTMLDivElement, PageBlockProps>(
                     <MarkdownRenderer content={pageData.content} className="book-page-markdown" />
                   )}
                 </div>
+              )}
+              </>
               )}
             </div>
 
@@ -405,6 +484,14 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const [pageH, setPageH] = useState(BASE_PAGE_H)
   const [isHoverTopBar, setIsHoverTopBar] = useState(false)
   const [isHoverBottomBar, setIsHoverBottomBar] = useState(false)
+  // Whether the current page was reached by clicking a table-of-contents entry
+  // (drives the "返回目录" affordance that offers a one-click way back).
+  const [tocJumpActive, setTocJumpActive] = useState(false)
+  // Latest spread index (left page) — used to record where a TOC jump started.
+  const currentPageRef = useRef(0)
+  // The spread the user clicked a TOC entry from, so 返回目录 returns to the
+  // exact TOC page they were on (not always the first 目录 page).
+  const [tocSourceSpread, setTocSourceSpread] = useState(0)
   const flipBookRef = useRef<{
     pageFlip: () => {
       flipNext: () => void
@@ -500,6 +587,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
     setPrevOpenKey(openKey)
     setIsHoverTopBar(false)
     setIsHoverBottomBar(false)
+    setTocJumpActive(false)
     if (isOpen && book) {
       setStage('desk_transition')
       setCurrentPage(lastReadPage)
@@ -679,12 +767,42 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
 
   const handleFlip = useCallback((e: { data: number }) => {
     lastReadPage = e.data
+    currentPageRef.current = e.data
     setCurrentPage(e.data)
     playPageFlipSound()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSoundEnabled])
 
+  // Jump to a chapter from the table of contents — resolve the printed page
+  // number to a flipbook index, with a clamped index fallback for gaps. Record
+  // the spread we jumped FROM so 返回目录 can land back on that exact TOC page.
+  const handleJumpToPage = useCallback(
+    (pageNumber: number) => {
+      setTocSourceSpread(currentPageRef.current)
+      setTocJumpActive(true)
+      const idx = pages.findIndex((p) => p.pageNumber === pageNumber)
+      const target = idx >= 0 ? idx : Math.max(0, Math.min(pageNumber - 1, pages.length - 1))
+      if (flipBookRef.current?.pageFlip()) {
+        flipBookRef.current.pageFlip().turnToPage(target)
+        playPageFlipSound()
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pages]
+  )
+
   const totalPages = pages.length
+
+  // One-click return to the exact table-of-contents spread the user jumped from.
+  const handleReturnToToc = useCallback(() => {
+    const fp = flipBookRef.current?.pageFlip()
+    if (fp) {
+      fp.turnToPage(tocSourceSpread)
+      playPageFlipSound()
+    }
+    setTocJumpActive(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tocSourceSpread])
 
   // Memoized flipbook children — HTMLFlipBook is a memo component; keeping its
   // props stable prevents react-pageflip from re-initializing (and flashing the
@@ -702,10 +820,13 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
           isActive={Math.abs(idx - currentPage) <= 3}
           onTurnNext={handleNextPage}
           onTurnPrev={handlePrevPage}
+          onJumpToPage={handleJumpToPage}
+          showTocReturn={tocJumpActive && idx === currentPage && currentPage !== tocSourceSpread}
+          onReturnToToc={handleReturnToToc}
         />
       ))
     },
-    [pages, book, totalPages, activeFormat, currentPage, handleNextPage, handlePrevPage]
+    [pages, book, totalPages, activeFormat, currentPage, handleNextPage, handlePrevPage, handleJumpToPage, tocJumpActive, tocSourceSpread, handleReturnToToc]
   )
 
   if (!isOpen || !book) return null
