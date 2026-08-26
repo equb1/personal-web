@@ -470,6 +470,9 @@ const CoverRig: React.FC<CoverRigProps> = ({ book, coverOpen, stage, pageW, page
 
 // Persist the last-read page across open/close sessions (module-scoped).
 let lastReadPage = 1
+// Tracks which book's DB resume value (book.lastPage) has already been seeded
+// this session, so reopening the same book resumes from the in-memory page.
+let lastBookIdForResume: string | null = null
 
 export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   book,
@@ -492,6 +495,37 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   // The spread the user clicked a TOC entry from, so 返回目录 returns to the
   // exact TOC page they were on (not always the first 目录 page).
   const [tocSourceSpread, setTocSourceSpread] = useState(0)
+  // ---- Reading progress reporting (POST /api/books/:id/progress) ----
+  const reportTimerRef = useRef<number | null>(null)
+  const lastReportRef = useRef<{
+    bookId: string
+    pageIndex: number
+    pageNumber: number
+    total: number
+  } | null>(null)
+
+  const reportProgress = useCallback(
+    (bookId: string, pageIndex: number, pageNumber: number, total: number) => {
+      const progress = Math.max(0, Math.min(100, Math.round(((pageIndex + 1) / total) * 100)))
+      fetch(`/api/books/${bookId}/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress, lastPage: pageNumber }),
+      }).catch(() => {
+        // Silent: progress reporting must never break the reading experience.
+      })
+    },
+    [],
+  )
+
+  // Flush any pending debounced report right away (used when leaving the reader).
+  const flushProgressReport = useCallback(() => {
+    if (reportTimerRef.current == null) return
+    window.clearTimeout(reportTimerRef.current)
+    reportTimerRef.current = null
+    const r = lastReportRef.current
+    if (r) reportProgress(r.bookId, r.pageIndex, r.pageNumber, r.total)
+  }, [reportProgress])
   const flipBookRef = useRef<{
     pageFlip: () => {
       flipNext: () => void
@@ -570,6 +604,14 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
               '| startPage prop =',
               lastReadPage
             )
+            // Resume from the DB-reported lastPage once per book per session.
+            if (lastBookIdForResume !== book.id && book.lastPage != null) {
+              lastBookIdForResume = book.id
+              const resumeIdx = (book.bookPages ?? []).findIndex(
+                (p) => p.pageNumber === book.lastPage,
+              )
+              if (resumeIdx >= 0) fp.turnToPage(resumeIdx)
+            }
           }
         } catch {
           console.log('[book] flipbook not ready yet')
@@ -639,6 +681,8 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   const handleCloseAndReturn = useCallback(() => {
     if (stage === 'cover_close' || stage === 'returning') return
 
+    flushProgressReport()
+
     setStage('cover_close')
 
     setTimeout(() => setStage('returning'), 1400)
@@ -646,7 +690,7 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
       onClose()
       setStage('shelf')
     }, 1400 + 900)
-  }, [stage, onClose])
+  }, [stage, onClose, flushProgressReport])
 
   const handleNextPage = useCallback(() => {
     if (flipBookRef.current?.pageFlip()) {
@@ -765,13 +809,33 @@ export const Interactive3DBook: React.FC<Interactive3DBookProps> = ({
   ]
   }, [book])
 
-  const handleFlip = useCallback((e: { data: number }) => {
-    lastReadPage = e.data
-    currentPageRef.current = e.data
-    setCurrentPage(e.data)
-    playPageFlipSound()
+  const handleFlip = useCallback(
+    (e: { data: number }) => {
+      lastReadPage = e.data
+      currentPageRef.current = e.data
+      setCurrentPage(e.data)
+      playPageFlipSound()
+      if (book) {
+        lastReportRef.current = {
+          bookId: book.id,
+          pageIndex: e.data,
+          pageNumber: pages[e.data]?.pageNumber ?? e.data + 1,
+          total: pages.length,
+        }
+        if (reportTimerRef.current != null) window.clearTimeout(reportTimerRef.current)
+        reportTimerRef.current = window.setTimeout(
+          () => {
+            reportTimerRef.current = null
+            const r = lastReportRef.current
+            if (r) reportProgress(r.bookId, r.pageIndex, r.pageNumber, r.total)
+          },
+          600,
+        )
+      }
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSoundEnabled])
+    [isSoundEnabled, book, pages, reportProgress],
+  )
 
   // Jump to a chapter from the table of contents — resolve the printed page
   // number to a flipbook index, with a clamped index fallback for gaps. Record

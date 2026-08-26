@@ -102,6 +102,7 @@ export interface Book {
   rating: number
   status: 'reading' | 'completed' | 'want-to-read'
   progress: number
+  lastPage?: number // 最近阅读的 bookPages 页码（断点续读，来自 DB 实时进度）
   summary: string
   excerpt?: string // Original book excerpt in Markdown
   thoughts: string // Reading notes in Markdown format
