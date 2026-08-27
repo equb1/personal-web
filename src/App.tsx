@@ -21,8 +21,16 @@ import { HobbiesPage } from './pages/HobbiesPage'
 import { BooksPage } from './pages/BooksPage'
 import { OtherPage } from './pages/OtherPage'
 
+const NAV_TABS: NavigationTab[] = ['home', 'learning', 'hobbies', 'books', 'other']
+
+/** 从 location.hash（如 #/books）解析当前 tab，非法/缺省回退到 home */
+const tabFromHash = (): NavigationTab => {
+  const raw = window.location.hash.replace(/^#\/?/, '')
+  return (NAV_TABS as string[]).includes(raw) ? (raw as NavigationTab) : 'home'
+}
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<NavigationTab>('home')
+  const [activeTab, setActiveTab] = useState<NavigationTab>(() => tabFromHash())
   
   // Data States
   const [posts] = useState<Post[]>(SAMPLE_POSTS)
@@ -40,6 +48,23 @@ export function App() {
   // Command Menu Modal State
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
 
+  // Keep the current tab in sync with the URL hash, so refreshing (or sharing a
+  // link) stays on the same tab and browser back/forward work.
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const tab = tabFromHash()
+      setActiveTab((prev) => (prev === tab ? prev : tab))
+      setSelectedPost(null)
+      window.scrollTo({ top: 0 })
+    }
+    window.addEventListener('hashchange', syncFromUrl)
+    window.addEventListener('popstate', syncFromUrl)
+    return () => {
+      window.removeEventListener('hashchange', syncFromUrl)
+      window.removeEventListener('popstate', syncFromUrl)
+    }
+  }, [])
+
   // Global Cmd+K / Ctrl+K listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,15 +78,24 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const updateUrlHash = (tab: NavigationTab) => {
+    const target = `#/${tab}`
+    if (window.location.hash !== target) {
+      window.history.pushState(null, '', target)
+    }
+  }
+
   const handleTabChange = (tab: NavigationTab) => {
     setActiveTab(tab)
     setSelectedPost(null)
+    updateUrlHash(tab)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSelectPostFromSearchOrHome = (post: Post) => {
     setSelectedPost(post)
     setActiveTab('learning')
+    updateUrlHash('learning')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
